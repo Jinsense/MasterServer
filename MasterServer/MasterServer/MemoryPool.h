@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_POOL_H_
-#define _MATCHINGSERVER_LIB_POOL_H_
+#ifndef _MASTERSERVER_LIB_POOL_H_
+#define _MASTERSERVER_LIB_POOL_H_
 
 #include <Windows.h>
 

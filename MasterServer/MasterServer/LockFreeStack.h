@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_STACK_H_
-#define _MATCHINGSERVER_LIB_STACK_H_
+#ifndef _MASTERSERVER_LIB_STACK_H_
+#define _MASTERSERVER_LIB_STACK_H_
 
 #include "MemoryPool.h"
 

@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_DUMP_H_
-#define _MATCHINGSERVER_LIB_DUMP_H_
+#ifndef _MASTERSERVER_LIB_DUMP_H_
+#define _MASTERSERVER_LIB_DUMP_H_
 
 #include <windows.h>
 #include <tchar.h>

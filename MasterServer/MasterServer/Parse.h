@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_PARSE_H_
-#define _MATCHINGSERVER_LIB_PARSE_H_
+#ifndef _MASTERSERVER_LIB_PARSE_H_
+#define _MASTERSERVER_LIB_PARSE_H_
 
 #include <Windows.h>
 

@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_LOG_H_
-#define _MATCHINGSERVER_LIB_LOG_H_
+#ifndef _MASTERSERVER_LIB_LOG_H_
+#define _MASTERSERVER_LIB_LOG_H_
 
 #include <direct.h>
 #include <wchar.h>

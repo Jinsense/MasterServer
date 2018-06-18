@@ -1,5 +1,5 @@
-#ifndef _MATCHINGSERVER_LIB_APIHOOK_H_
-#define _MATCHINGSERVER_LIB_APIHOOK_H_
+#ifndef _MASTERSERVER_LIB_APIHOOK_H_
+#define _MASTERSERVER_LIB_APIHOOK_H_
 
 #define chINRANGE(low, Num, High) (((low) <= (Num)) && ((Num) <= (High)))
 

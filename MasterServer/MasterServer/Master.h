@@ -1,1 +1,9 @@
-#pragma once
+#ifndef _MASTERSERVER_SERVER_MASTER_H_
+#define _MASTERSERVER_SERVER_MASTER_H_
+
+
+
+
+
+#endif // !_MASTERSERVER_SERVER_MASTER_H_
+
