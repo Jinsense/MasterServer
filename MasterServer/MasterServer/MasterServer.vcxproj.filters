@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="LIB">
+      <UniqueIdentifier>{27f33c74-0344-4cc9-bcd2-7cd44b31ded5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MasterServer">
+      <UniqueIdentifier>{29417486-e635-486d-852c-c5fe902b6344}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\Log">
+      <UniqueIdentifier>{b5a8f851-c954-4761-9a6c-e069d1b82c36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\Dump">
+      <UniqueIdentifier>{910226b4-01e3-47bf-943c-e3cf93f62f3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\MemoryPool">
+      <UniqueIdentifier>{8c599af8-dbe6-49c2-8545-ac90ab9cd2fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\Parse">
+      <UniqueIdentifier>{5c1da134-3f85-4501-86f6-5ebfa75ed1d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\RingBuffer">
+      <UniqueIdentifier>{b8ec4d6f-511e-4237-881d-e94fbdfafbcb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\Packet">
+      <UniqueIdentifier>{7548dbaa-578b-4bb8-8a10-c7375026b4c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MasterServer\Common">
+      <UniqueIdentifier>{e171bff8-54dc-4959-9446-6a872ed341a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MasterServer\Config">
+      <UniqueIdentifier>{c4688d8f-f33f-44c8-bd5b-1b29e6d9dd5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MasterServer\Server">
+      <UniqueIdentifier>{a9be61e5-dbf7-4364-9d07-1a5c4163e57c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Log.cpp">
+      <Filter>LIB\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="Dump.cpp">
+      <Filter>LIB\Dump</Filter>
+    </ClCompile>
+    <ClCompile Include="Packet.cpp">
+      <Filter>LIB\Packet</Filter>
+    </ClCompile>
+    <ClCompile Include="RingBuffer.cpp">
+      <Filter>LIB\RingBuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="Parse.cpp">
+      <Filter>LIB\Parse</Filter>
+    </ClCompile>
+    <ClCompile Include="Config.cpp">
+      <Filter>MasterServer\Config</Filter>
+    </ClCompile>
+    <ClCompile Include="Master.cpp">
+      <Filter>MasterServer\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="APIHook.cpp">
+      <Filter>LIB\Dump</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Log.h">
+      <Filter>LIB\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="Dump.h">
+      <Filter>LIB\Dump</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryPool.h">
+      <Filter>LIB\MemoryPool</Filter>
+    </ClInclude>
+    <ClInclude Include="LockFreeQueue.h">
+      <Filter>LIB\MemoryPool</Filter>
+    </ClInclude>
+    <ClInclude Include="LockFreeStack.h">
+      <Filter>LIB\MemoryPool</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet.h">
+      <Filter>LIB\Packet</Filter>
+    </ClInclude>
+    <ClInclude Include="RingBuffer.h">
+      <Filter>LIB\RingBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="Parse.h">
+      <Filter>LIB\Parse</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonProtocol.h">
+      <Filter>MasterServer\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Config.h">
+      <Filter>MasterServer\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Master.h">
+      <Filter>MasterServer\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="APIHook.h">
+      <Filter>LIB\Dump</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
