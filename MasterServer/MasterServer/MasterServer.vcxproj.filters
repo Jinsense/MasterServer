@@ -34,6 +34,27 @@
     <Filter Include="MasterServer\Server">
       <UniqueIdentifier>{a9be61e5-dbf7-4364-9d07-1a5c4163e57c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="LIB\LanServer">
+      <UniqueIdentifier>{569ec9b3-eaf7-4be7-98fe-c0282faa5c97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MasterServer\Server\Master">
+      <UniqueIdentifier>{ac7ba1b6-d20b-4421-bdf7-b14eec79bd5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\LanServer\MatchMaster">
+      <UniqueIdentifier>{71fd6cdb-c195-4879-82ff-340d814f504e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\LanServer\BattleMaster">
+      <UniqueIdentifier>{f7bd12d2-3c0d-44b8-b088-0a764c137a71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\LanClient">
+      <UniqueIdentifier>{31b111ad-512d-49c2-9e76-44f26376b42f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\CPUsage">
+      <UniqueIdentifier>{33805598-155c-4ac9-aab3-2cbbc72989cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LIB\Ethernet">
+      <UniqueIdentifier>{6980f983-4582-455b-960d-db2937cb7a06}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -55,11 +76,26 @@
     <ClCompile Include="Config.cpp">
       <Filter>MasterServer\Config</Filter>
     </ClCompile>
-    <ClCompile Include="Master.cpp">
-      <Filter>MasterServer\Server</Filter>
-    </ClCompile>
     <ClCompile Include="APIHook.cpp">
       <Filter>LIB\Dump</Filter>
+    </ClCompile>
+    <ClCompile Include="MatchMaster.cpp">
+      <Filter>LIB\LanServer\MatchMaster</Filter>
+    </ClCompile>
+    <ClCompile Include="BattleMaster.cpp">
+      <Filter>LIB\LanServer\BattleMaster</Filter>
+    </ClCompile>
+    <ClCompile Include="MasterServer.cpp">
+      <Filter>MasterServer\Server\Master</Filter>
+    </ClCompile>
+    <ClCompile Include="LanClient.cpp">
+      <Filter>LIB\LanClient</Filter>
+    </ClCompile>
+    <ClCompile Include="EtherNet_PDH.cpp">
+      <Filter>LIB\Ethernet</Filter>
+    </ClCompile>
+    <ClCompile Include="CpuUsage.cpp">
+      <Filter>LIB\CPUsage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -93,11 +129,34 @@
     <ClInclude Include="Config.h">
       <Filter>MasterServer\Config</Filter>
     </ClInclude>
-    <ClInclude Include="Master.h">
-      <Filter>MasterServer\Server</Filter>
-    </ClInclude>
     <ClInclude Include="APIHook.h">
       <Filter>LIB\Dump</Filter>
     </ClInclude>
+    <ClInclude Include="LanServer.h">
+      <Filter>LIB\LanServer</Filter>
+    </ClInclude>
+    <ClInclude Include="MatchMaster.h">
+      <Filter>LIB\LanServer\MatchMaster</Filter>
+    </ClInclude>
+    <ClInclude Include="BattleMaster.h">
+      <Filter>LIB\LanServer\BattleMaster</Filter>
+    </ClInclude>
+    <ClInclude Include="MasterServer.h">
+      <Filter>MasterServer\Server\Master</Filter>
+    </ClInclude>
+    <ClInclude Include="LanClient.h">
+      <Filter>LIB\LanClient</Filter>
+    </ClInclude>
+    <ClInclude Include="EtherNet_PDH.h">
+      <Filter>LIB\Ethernet</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuUsage.h">
+      <Filter>LIB\CPUsage</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MasterServer_Config.ini">
+      <Filter>MasterServer\Common</Filter>
+    </None>
   </ItemGroup>
 </Project>

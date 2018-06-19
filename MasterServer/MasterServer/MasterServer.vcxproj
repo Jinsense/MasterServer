@@ -83,7 +83,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -107,7 +107,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -116,28 +116,42 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="APIHook.cpp" />
+    <ClCompile Include="BattleMaster.cpp" />
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="CpuUsage.cpp" />
     <ClCompile Include="Dump.cpp" />
+    <ClCompile Include="EtherNet_PDH.cpp" />
+    <ClCompile Include="LanClient.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Master.cpp" />
+    <ClCompile Include="MasterServer.cpp" />
+    <ClCompile Include="MatchMaster.cpp" />
     <ClCompile Include="Packet.cpp" />
     <ClCompile Include="Parse.cpp" />
     <ClCompile Include="RingBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="APIHook.h" />
+    <ClInclude Include="BattleMaster.h" />
     <ClInclude Include="CommonProtocol.h" />
     <ClInclude Include="Config.h" />
+    <ClInclude Include="CpuUsage.h" />
     <ClInclude Include="Dump.h" />
+    <ClInclude Include="EtherNet_PDH.h" />
+    <ClInclude Include="LanClient.h" />
+    <ClInclude Include="LanServer.h" />
     <ClInclude Include="LockFreeQueue.h" />
     <ClInclude Include="LockFreeStack.h" />
     <ClInclude Include="Log.h" />
-    <ClInclude Include="Master.h" />
+    <ClInclude Include="MasterServer.h" />
+    <ClInclude Include="MatchMaster.h" />
     <ClInclude Include="MemoryPool.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="Parse.h" />
     <ClInclude Include="RingBuffer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MasterServer_Config.ini" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
