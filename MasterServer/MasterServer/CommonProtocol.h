@@ -5,6 +5,15 @@
 
 - 2018.05.07
 
+# 변경 en_PACKET_MAT_MAS_REQ_GAME_ROOM,
+
+추가 UINT64	AccountNo
+
+마스터 서버는 사용자의 고유 값으로 매칭서버가 생성한 ClientKey 만을 알고 있었기에
+AccountNo 를 추가하여 마스터는 ClientKey / AccountNo 를 쌍으로 관리 사용 한다.
+
+
+
 # 변경 en_PACKET_BAT_MAS_REQ_LEFT_USER
 
 추가 INT64	AccountNo
@@ -813,7 +822,7 @@ enum en_PACKET_TYPE
 	en_PACKET_CS_MATCH_SERVER = 2000,
 
 	//------------------------------------------------------------
-	// 매치메이킹 서버로 로그인 요청 
+	// 매치메이킹 서버로 로그인 요청
 	//
 	//	{
 	//		WORD	Type
@@ -843,8 +852,7 @@ enum en_PACKET_TYPE
 	//	{
 	//		WORD	Type
 	//
-	//		BYTE	Status			
-	//								1 : 성공
+	//		BYTE	Status			1 : 성공
 	//								2 : 세션키 오류
 	//								3 : AccountNo 없음
 	//								4 : 기타 오류
@@ -1016,9 +1024,12 @@ enum en_PACKET_TYPE
 	//		WORD	Type
 	//
 	//		UINT64	ClientKey			클라이언트 고유 키 (매치메이킹 서버가 생성한 클라이언트 유니크 키)
+	//		UINT64	AccountNo			
 	//	}
 	//
 	//	매치메이킹 서버는 클라이언트에게 게임방 정보 요청을 받으면, 이 패킷을 마스터 서버에게 보냄
+	//
+	//	AccountNo 도 추가 함.  마스터 서버는 ClientKey 와 AccountNo 를 쌍으로 관리 사용한다.
 	//------------------------------------------------------------
 	en_PACKET_MAT_MAS_REQ_GAME_ROOM,
 
@@ -1303,6 +1314,9 @@ enum en_PACKET_TYPE
 	// 2. 배틀 -> 마스터  에게 사용자 나감 전달 en_PACKET_BAT_MAS_REQ_LEFT_USER
 	//
 	// 이 상황으로 방 하나에 -2 가 차감되는 상황 발생 가능.  그리하여 AccountNO 추가 됨.
+	//
+	// 마스터서버는 각 유저의 고유 값으로 ClientKey 를 사용하지만, Battle 서버는 ClientKey 를 모르기 때문에
+	// Battle 서버는 AccountNo 로 구분하여 사용한다.
 	//------------------------------------------------------------
 	en_PACKET_BAT_MAS_REQ_LEFT_USER,
 

@@ -24,6 +24,36 @@ public:
 	bool	GetMonitorMode();
 	bool	SetMonitorMode(bool type);
 
+private:
+	static unsigned int WINAPI MonitorPrintThread(LPVOID arg)
+	{
+		CMasterServer *_pMonitorPrintThread = (CMasterServer *)arg;
+		if (NULL == _pMonitorPrintThread)
+		{
+			wprintf(L"[Server :: MonitorPrintThread] Init Error\n");
+			return false;
+		}
+		_pMonitorPrintThread->MonitorPrintThead_Update();
+		return true;
+	}
+
+	static unsigned int WINAPI LanMonitoringThread(LPVOID arg)
+	{
+		CMasterServer *_pLanMonitoringThread = (CMasterServer *)arg;
+		if (NULL == _pLanMonitoringThread)
+		{
+			wprintf(L"[Server :: LanMonitoringThread] Init Error\n");
+			return false;
+		}
+		_pLanMonitoringThread->LanMonitoringThread_Update();
+		return true;
+	}
+	//-----------------------------------------------------------
+	// 화면 출력 스레드 / 모니터링 전송 스레드
+	//-----------------------------------------------------------
+	void	MonitorPrintThead_Update();
+	void	LanMonitoringThread_Update();
+
 public:
 	CMatchMaster *	_pMatchMaster;
 	CBattleMaster *	_pBattleMaster;

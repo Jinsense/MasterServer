@@ -53,6 +53,7 @@ int main()
 		{
 		case 'q': case 'Q':
 		{
+			Server.SetShutDownMode();
 			break;
 		}
 		case 'm': case 'M':
