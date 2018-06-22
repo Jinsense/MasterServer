@@ -2,6 +2,7 @@
 #define _MASTERSERVER_LIB_MATCHMASTER_H_
 
 #include "LanServer.h"
+#include "MasterServer.h"
 
 class CMasterServer;
 
