@@ -1,7 +1,6 @@
 #ifndef _MASTERSERVER_SERVER_MASTER_H_
 #define _MASTERSERVER_SERVER_MASTER_H_
 
-
 #include "Config.h"
 #include "Log.h"
 #include "CpuUsage.h"
@@ -62,12 +61,25 @@ public:
 	CConfig			_Config;
 
 	//-----------------------------------------------------------
+	// 매칭서버 번호 관리
+	//-----------------------------------------------------------
+	std::map<int, LANSESSION*>	_MatchServerNoMap;
+	SRWLOCK		_MatchServerNo_lock;
+	//-----------------------------------------------------------
 	// 클라이언트 키 관리
 	//-----------------------------------------------------------
-
+	std::map<UINT64, UINT64>	_ClientKeyMap;
+	SRWLOCK		_ClientKey_lock;
+	//-----------------------------------------------------------
+	// 배틀서버 관리
+	//-----------------------------------------------------------
+	std::map<int, BattleServer*>	_BattleServerMap;
+	SRWLOCK		_BattleServer_lock;
 	//-----------------------------------------------------------
 	// 배틀서버 방 관리
 	//-----------------------------------------------------------
+	std::list<BattleRoom*>		_RoomList;
+	SRWLOCK		_Room_lock;
 
 protected:
 	SRWLOCK			_srwlock;

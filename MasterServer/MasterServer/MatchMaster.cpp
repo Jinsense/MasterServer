@@ -626,17 +626,69 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	
 	//-----------------------------------------------------------
 	// 컨텐츠 처리 - 매치메이킹 서버 켜짐 알림 ( 로그인 )
+	//	Type : en_PACKET_MAT_MAS_REQ_SERVER_ON
+	//	int : ServerNo
+	//	char : MasterToken
 	//-----------------------------------------------------------
 	if (en_PACKET_MAT_MAS_REQ_SERVER_ON == Type)
 	{
+		bool Exist = false;
+		int ServerNo = NULL;
+		char MasterToken[32] = { 0, };
+		*pPacket >> ServerNo;
+		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken));
 
+		//	마스터 토큰 검사
+		if (0 != strcmp(_pMaster->_Config.MASTERTOKEN, MasterToken))
+		{
+			//	마스터 토큰이 다를 경우 로그 남기고 끊음
+			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"MasterToken Not Same [MatchServerNo : %d]"), ServerNo);
+			Disconnect(pSession->iClientID);
+			return true;
+		}
+		//	ServerNo 중복 체크 - 중복일 경우 로그 남기로 끊음
+		//	중복이 아닐 경우 추가		
+		AcquireSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
+		if (_pMaster->_MatchServerNoMap.find(ServerNo) == _pMaster->_MatchServerNoMap.end()) 
+		{
+			// not found
+			Exist = false;
+			pSession->ServerNo = ServerNo;
+			_pMaster->_MatchServerNoMap.insert(make_pair(ServerNo, pSession));
+		}
+		else 
+		{
+			// found
+			Exist = true;
+		}
+		ReleaseSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
+
+		if (true == Exist)
+		{
+			// 이미 매치서버 번호가 존재함 - 로그 남기고 끊기
+			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"ServerNo is Exist [MatchServerNo : %d]"), ServerNo);
+			Disconnect(pSession->iClientID);
+		}
+		else
+		{
+			//	매치서버 켜짐 수신 확인
+			CPacket *newPacket = CPacket::Alloc();
+			Type = en_PACKET_MAT_MAS_RES_SERVER_ON;
+			*newPacket << Type << ServerNo;
+			SendPacket(pSession->iClientID, newPacket);
+			newPacket->Free();
+		}
+		return true;
 	}
 	//-----------------------------------------------------------
 	// 컨텐츠 처리 - 게임방 정보 요청
+	//	Type : en_PACKET_MAT_MAS_REQ_GAME_ROOM
+	//	UINT64 : ClientKey
+	//	UINT64 : AccountNo
 	//-----------------------------------------------------------
 	else if (en_PACKET_MAT_MAS_REQ_GAME_ROOM == Type)
 	{
-
+		//	방이 있으면 방을 돌려주고 없으면 없음을 돌려줌
 	}
 	//-----------------------------------------------------------
 	// 컨텐츠 처리 - 유저의 방 입장 성공 알림

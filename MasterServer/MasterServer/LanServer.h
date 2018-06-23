@@ -2,6 +2,7 @@
 #define _MASTER_LIB_LANSERVER_H_
 
 #include <map>
+#include <list>
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "winmm.lib")
@@ -60,6 +61,7 @@ typedef struct st_RELEASE_COMPARE
 
 typedef struct st_Client
 {
+	int					ServerNo;
 	char				IP[20];
 	unsigned short		Port;
 	bool				bLoginFlag;
