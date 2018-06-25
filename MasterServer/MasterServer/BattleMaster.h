@@ -8,6 +8,7 @@ typedef struct st_BattleRoom
 	int BattleServerNo;
 	int RoomNo;
 	int MaxUser;
+	int CurUser;
 	char EnterToken[32];
 }BattleRoom;
 

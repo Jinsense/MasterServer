@@ -6,8 +6,20 @@
 #include "CpuUsage.h"
 #include "EtherNet_PDH.h"
 #include "LanClient.h"
-#include "MatchMaster.h"
 #include "BattleMaster.h"
+#include "MatchMaster.h"
+
+class CMatchMaster;
+class CBattleMasger;
+
+typedef struct st_CLIENTINFO
+{
+	UINT64 ClientKey;
+	UINT64 AccountNo;
+	int BattleRoomNo;
+	int MatchServerNo;
+
+}CLIENT;
 
 class CMasterServer
 {
@@ -22,6 +34,12 @@ public:
 	bool	SetShutDownMode();
 	bool	GetMonitorMode();
 	bool	SetMonitorMode(bool type);
+
+	//-----------------------------------------------------------
+	// 사용자 정의 함수
+	//-----------------------------------------------------------
+	BattleServer*	FindBattleServerNo(int ServerNo);
+	CLIENT*			FindClientKey(int ClientKey);
 
 private:
 	static unsigned int WINAPI MonitorPrintThread(LPVOID arg)
@@ -54,8 +72,8 @@ private:
 	void	LanMonitoringThread_Update();
 
 public:
-	CMatchMaster *	_pMatchMaster;
 	CBattleMaster *	_pBattleMaster;
+	CMatchMaster *	_pMatchMaster;
 	CLanClient *	_pMonitor;
 	CSystemLog *	_pLog;
 	CConfig			_Config;
@@ -66,9 +84,10 @@ public:
 	std::map<int, LANSESSION*>	_MatchServerNoMap;
 	SRWLOCK		_MatchServerNo_lock;
 	//-----------------------------------------------------------
-	// 클라이언트 키 관리
+	// 클라이언트 관리
 	//-----------------------------------------------------------
-	std::map<UINT64, UINT64>	_ClientKeyMap;
+	CMemoryPool<CLIENT> *_ClientPool;
+	std::map<UINT64, CLIENT*>	_ClientKeyMap;
 	SRWLOCK		_ClientKey_lock;
 	//-----------------------------------------------------------
 	// 배틀서버 관리
@@ -87,7 +106,9 @@ protected:
 	//-----------------------------------------------------------
 	// 모니터링 출력 변수
 	//-----------------------------------------------------------
-	
+	unsigned __int64	_BattleRoomEnterFail;		//	배틀서버 방 입장 하기 전 끊김
+
+
 };
 
 
