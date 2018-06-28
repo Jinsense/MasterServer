@@ -645,7 +645,7 @@ bool CBattleMaster::SetWhiteIPMode(bool bFlag)
 unsigned __int64* CBattleMaster::GetIndex()
 {
 	unsigned __int64 *_iIndex = nullptr;
-	_SessionStack.Pop(&_iIndex);
+	_SessionStack.Pop(_iIndex);
 	return _iIndex;
 }
 

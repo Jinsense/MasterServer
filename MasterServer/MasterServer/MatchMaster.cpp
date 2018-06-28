@@ -767,6 +767,8 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-----------------------------------------------------------
 	else if (en_PACKET_MAT_MAS_REQ_ROOM_ENTER_FAIL == Type)
 	{
+		InterlockedIncrement64(&_pMaster->_BattleRoomEnterFail);
+
 		UINT ClientKey;
 		*pPacket >> ClientKey;
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
@@ -808,7 +810,7 @@ bool CMatchMaster::SetWhiteIPMode(bool bFlag)
 unsigned __int64* CMatchMaster::GetIndex()
 {
 	unsigned __int64 *_iIndex = nullptr;
-	_SessionStack.Pop(&_iIndex);
+	_SessionStack.Pop(_iIndex);
 	return _iIndex;
 }
 

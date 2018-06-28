@@ -30,7 +30,7 @@ public:
 	~CLockFreeStack();
 
 	void Push(Type Data);
-	void Pop(Type *pData);
+	void Pop(Type &Data);
 
 	long GetUseCount();
 
@@ -88,12 +88,12 @@ inline void CLockFreeStack<Type>::Push(Type Data)
 }
 
 template<class Type>
-inline void CLockFreeStack<Type>::Pop(Type *pData)
+inline void CLockFreeStack<Type>::Pop(Type &Data)
 {
 	if (InterlockedDecrement(&m_lUseCount) < 0)
 	{
 		InterlockedIncrement(&m_lUseCount);
-		*pData = nullptr;
+		Data = NULL;
 		return;
 	}
 	st_TOP _Top;
@@ -106,7 +106,7 @@ inline void CLockFreeStack<Type>::Pop(Type *pData)
 		if (InterlockedCompareExchange128((LONG64*)m_pTop, _Top.iCount + 1,
 			(LONG64)_Top.pNode->pNext, (LONG64*)&_Top))
 		{
-			*pData = _Top.pNode->Data;
+			Data = _Top.pNode->Data;
 			m_FreeList.Free(_Top.pNode);
 			return;
 		}

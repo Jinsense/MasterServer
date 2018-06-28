@@ -10,7 +10,7 @@
 #include "MatchMaster.h"
 
 class CMatchMaster;
-class CBattleMasger;
+class CBattleMaster;
 
 typedef struct st_CLIENTINFO
 {
@@ -31,15 +31,16 @@ public:
 	// 콘솔 창 제어 함수
 	//-----------------------------------------------------------
 	bool	GetShutDownMode();
-	bool	SetShutDownMode();
+	void	SetShutDownMode();
 	bool	GetMonitorMode();
-	bool	SetMonitorMode(bool type);
+	void	SetMonitorMode(bool type);
 
 	//-----------------------------------------------------------
 	// 사용자 정의 함수
 	//-----------------------------------------------------------
 	BattleServer*	FindBattleServerNo(int ServerNo);
 	CLIENT*			FindClientKey(int ClientKey);
+	bool			LanMonitorSendPacket(BYTE DataType);
 
 private:
 	static unsigned int WINAPI MonitorPrintThread(LPVOID arg)
@@ -100,15 +101,35 @@ public:
 	std::list<BattleRoom*>		_RoomList;
 	SRWLOCK		_Room_lock;
 
-protected:
-	SRWLOCK			_srwlock;
-
 	//-----------------------------------------------------------
-	// 모니터링 출력 변수
+	// 모니터링 변수
 	//-----------------------------------------------------------
-	unsigned __int64	_BattleRoomEnterFail;		//	배틀서버 방 입장 하기 전 끊김
+	bool	_bShutDown;
+	bool	_bMonitorMode;
+	__int64	_BattleRoomEnterFail;			//	배틀서버 방 입장 하기 전 끊김
 
+	int		_TimeStamp;						//	TimeStamp	
+	int		_MasterServer_On;				//	마스터 서버 ON
+	int		_MasterServer_CPU_Process;		//	마스터 CPU 사용률 ( 프로세스 )
+	int		_MasterServer_CPU_All;			//	마스터 CPU 사용률 ( 서버 컴퓨터 전체 )
+	int		_MasterServer_MemoryCommit;		//	마스터 메모리 유저 커밋 사용량 ( Private ) MByte
+	int		_MasterServer_PacketPool;		//	마스터 패킷풀 사용량
+	int		_MasterServer_Match_Connect;	//	마스터 매치메이킹 서버 연결 수
+	int		_MasterServer_Match_Login;		//	마스터 매치메이킹 서버 로그인 수
+	int		_MasterServer_Stay_Client;		//	마스터 대기자 클라이언트
+	int		_MasterServer_Battle_Connect;	//	마스터 배틀 서버 연결 수
+	int		_MasterServer_Battle_Login;		//	마스터 배틀 서버 로그인 후
+	int		_MasterServer_Battle_WaitRoom;	//	마스터 배틀 서버 대기방
 
+	CCpuUsage	_Cpu;
+	HANDLE		_hMonitorSendThread;
+	HANDLE		_hMonitorPrintThread;
+
+	PDH_HQUERY	_CpuQuery;
+	PDH_HCOUNTER	_MemoryAvailableMBytes;
+	PDH_HCOUNTER	_MemoryNonpagedBytes;
+	PDH_HCOUNTER	_ProcessPrivateBytes;
+	PDH_FMT_COUNTERVALUE _CounterVal;
 };
 
 

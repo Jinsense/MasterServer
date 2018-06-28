@@ -197,7 +197,7 @@ public:
 	{
 		_pMemPool = new CMemoryPool<CChunk>;
 		_TLSIndex = TlsAlloc();
-		//		_UseCount = 0;
+		_UseCount = 0;
 		_AllocCount = 0;
 	}
 	~CMemoryPoolTLS()
@@ -207,7 +207,7 @@ public:
 
 	Type *Alloc()
 	{
-		//		InterlockedIncrement(&_UseCount);
+		InterlockedIncrement(&_UseCount);
 
 		CChunk *pChunk;
 
@@ -232,7 +232,7 @@ public:
 
 	void Free(Type *pData)
 	{
-		//		InterlockedDecrement(&_UseCount);
+		InterlockedDecrement(&_UseCount);
 
 		CChunk* pChunk = ((CChunk::st_NODE*)pData)->pChunkNode;
 
@@ -245,9 +245,11 @@ public:
 
 	//	long	GetUseCount() { return _UseCount; }
 	long	GetAllocCount() { return _pMemPool->GetAllocCount() * eNUM_CHUNKBLOCK; }
+
+public:
+	long	_UseCount;
 private:
 	DWORD	_TLSIndex;
-	//	long	_UseCount;
 	long	_AllocCount;
 
 	CMemoryPool<CChunk>		*_pMemPool;
