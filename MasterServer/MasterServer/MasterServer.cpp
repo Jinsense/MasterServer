@@ -21,6 +21,7 @@ CMasterServer::CMasterServer()
 	_bMonitorMode = true;
 	_BattleRoomEnterFail = NULL;
 
+	_BattleServerNo = 0;
 	_TimeStamp = NULL;
 	_MasterServer_On = 1;
 	_MasterServer_CPU_Process = NULL;
@@ -193,25 +194,38 @@ bool CMasterServer::LanMonitorSendPacket(BYTE DataType)
 		_MasterServer_PacketPool = CPacket::m_pMemoryPool->_UseCount;
 		CPacket *pPacket = CPacket::Alloc();
 		*pPacket << Type << DataType << _MasterServer_PacketPool << _TimeStamp;
+		_pMonitor->SendPacket(pPacket);
 		pPacket->Free();
 	}
 	break;
 		//	마스터 매치메이킹 서버 연결 수
 	case dfMONITOR_DATA_TYPE_MASTER_MATCH_CONNECT:
 	{
-
+		_MasterServer_Match_Connect = _pMatchMaster->_iConnectClient;
+		CPacket *pPacket = CPacket::Alloc();
+		*pPacket << Type << DataType << _MasterServer_Match_Connect << _TimeStamp;
+		_pMonitor->SendPacket(pPacket);
+		pPacket->Free();
 	}
 	break;
 		//	마스터 매치메이킹 서버 로그인 수
 	case dfMONITOR_DATA_TYPE_MASTER_MATCH_LOGIN:
 	{
-
+		_MasterServer_Match_Login = _pMatchMaster->_iLoginClient;
+		CPacket *pPacket = CPacket::Alloc();
+		*pPacket << Type << DataType << _MasterServer_Match_Login << _TimeStamp;
+		_pMonitor->SendPacket(pPacket);
+		pPacket->Free();
 	}
 	break;
 		//	마스터 대기자 클라이언트
 	case dfMONITOR_DATA_TYPE_MASTER_STAY_CLIENT:
 	{
-
+		_MasterServer_Stay_Client = _pMatchMaster->GetClientCount();
+		CPacket *pPacket = CPacket::Alloc();
+		*pPacket << Type << DataType << _MasterServer_Stay_Client << _TimeStamp;
+		_pMonitor->SendPacket(pPacket);
+		pPacket->Free();
 	}
 	break;
 		//	마스터 배틀 서버 연결 수

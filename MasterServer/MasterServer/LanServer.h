@@ -3,6 +3,7 @@
 
 #include <map>
 #include <list>
+#include <vector>
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "winmm.lib")
@@ -83,5 +84,33 @@ typedef struct st_Client
 		lIOCount(0),
 		lSendFlag(true) {}
 }LANSESSION;
+
+typedef struct st_RoomPlayerInfo
+{
+	UINT64 AccountNo;
+	UINT64 ClientKey;
+}RoomPlayerInfo;
+
+typedef struct st_BattleRoom
+{
+	long BattleServerNo;
+	int RoomNo;
+	int MaxUser;
+	int CurUser;
+	char EnterToken[32];
+	std::vector<RoomPlayerInfo> RoomPlayer;
+}BattleRoom;
+
+typedef struct st_BattleServer
+{
+	WCHAR	ServerIP[16];
+	WORD	Port;
+	char	ConnectToken[32];
+	char	MasterToken[32];
+
+	WCHAR	ChatServerIP[16];
+	WORD	ChatServerPort;
+	long	ServerNo;
+}BattleServer;
 
 #endif 

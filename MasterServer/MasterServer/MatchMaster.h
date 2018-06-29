@@ -78,6 +78,7 @@ public:
 	unsigned __int64		_iRecvPacketTPS;
 	unsigned __int64		_iSendPacketTPS;
 	unsigned __int64		_iConnectClient;
+	unsigned __int64		_iLoginClient;
 
 	SERVERINFO				_ServerInfo[LAN_SERVER_NUM];
 

@@ -26,6 +26,7 @@ CMatchMaster::CMatchMaster()
 	_iRecvPacketTPS = 0;
 	_iSendPacketTPS = 0;
 	_iConnectClient = 0;
+	_iLoginClient = 0;
 
 	_pMaster = nullptr;
 }
@@ -281,6 +282,7 @@ bool CMatchMaster::ClientRelease(LANSESSION *pSession)
 	_ServerInfo[pSession->Index].Login = false;
 
 	InterlockedDecrement(&_iConnectClient);
+	InterlockedDecrement(&_iLoginClient);
 	PutIndex(iIndex);
 	return true;
 }
@@ -672,6 +674,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		}
 		else
 		{
+			InterlockedIncrement(&_iLoginClient);
 			//	매치서버 켜짐 수신 확인
 			CPacket *newPacket = CPacket::Alloc();
 			Type = en_PACKET_MAT_MAS_RES_SERVER_ON;
@@ -728,6 +731,10 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		{
 			if ((*i)->MaxUser <= (*i)->CurUser)
 				continue;
+			RoomPlayerInfo RoomPlayer;
+			RoomPlayer.AccountNo = AccountNo;
+			RoomPlayer.ClientKey = ClientKey;
+			(*i)->RoomPlayer.push_back(RoomPlayer);
 			(*i)->CurUser++;
 			//	데드락 위험성 있음 - 데드락 발생 시 구조 변경할 것
 			BattleServer* Info = _pMaster->FindBattleServerNo((*i)->BattleServerNo);
@@ -777,9 +784,20 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		{
 			if ((*i)->RoomNo == pClient->BattleRoomNo)
 			{
-				(*i)->CurUser--;
+				//	방에 아직 존재하는 유저인지 확인
+				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end(); iter++)
+				{
+					if (iter->ClientKey == ClientKey)
+					{
+						(*i)->RoomPlayer.erase(iter);
+						(*i)->CurUser--;
+						break;
+					}
+					continue;
+				}
 				break;
 			}
+			continue;
 		}
 		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);

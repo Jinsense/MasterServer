@@ -93,7 +93,8 @@ public:
 	//-----------------------------------------------------------
 	// 배틀서버 관리
 	//-----------------------------------------------------------
-	std::map<int, BattleServer*>	_BattleServerMap;
+	long		_BattleServerNo;
+	std::map<long, BattleServer*>	_BattleServerMap;
 	SRWLOCK		_BattleServer_lock;
 	//-----------------------------------------------------------
 	// 배틀서버 방 관리

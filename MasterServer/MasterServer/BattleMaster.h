@@ -2,27 +2,7 @@
 #define _MASTERSERVER_LIB_BATTLEMASTER_H_
 
 #include "LanServer.h"
-
-typedef struct st_BattleRoom
-{
-	int BattleServerNo;
-	int RoomNo;
-	int MaxUser;
-	int CurUser;
-	char EnterToken[32];
-}BattleRoom;
-
-typedef struct st_BattleServer
-{
-	WCHAR	ServerIP[16];
-	WORD	Port;
-	char	ConnectToken[32];
-	char	MasterToken[32];
-
-	WCHAR	ChatServerIP[16];
-	WORD	ChatServerPort;
-	int		ServerNo;
-}BattleServer;
+#include "MasterServer.h"
 
 class CMasterServer;
 
@@ -52,6 +32,7 @@ public:
 	LANSESSION*			SessionAcquireLock(unsigned __int64 iClientID);
 	void				SessionAcquireFree(LANSESSION *pSession);
 
+	BattleServer*		FindBattleServerNo(int ServerNo);
 private:
 	bool				ServerInit();
 	bool				ClientShutdown(LANSESSION *pSession);
@@ -98,6 +79,7 @@ public:
 	unsigned __int64		_iRecvPacketTPS;
 	unsigned __int64		_iSendPacketTPS;
 	unsigned __int64		_iConnectClient;
+	unsigned __int64		_iLoginClient;
 
 	SERVERINFO				_ServerInfo[LAN_SERVER_NUM];
 
