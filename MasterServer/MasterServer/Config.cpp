@@ -44,7 +44,6 @@ bool CConfig::Set()
 	res = _Parse.GetValue("VER_CODE", &VER_CODE);
 	if (false == res)
 		return false;
-	_Parse.GetValue("MASTERTOKEN", &MASTERTOKEN[0], &MASTERTOKEN_SIZE);
 
 	res = _Parse.GetValue("MATCH_BIND_IP", &IP[0], &MATCH_BIND_IP_SIZE);
 	if (false == res)
@@ -65,6 +64,7 @@ bool CConfig::Set()
 		return false;
 	_Parse.GetValue("USER_TIMEOUT", &SERVER_TIMEOUT);
 	_Parse.GetValue("CLIENT_MAX", &CLIENT_MAX);
+	_Parse.GetValue("MASTERTOKEN", &MASTERTOKEN[0], &MASTERTOKEN_SIZE);
 	_Parse.GetValue("PACKET_CODE", &PACKET_CODE);
 	_Parse.GetValue("PACKET_KEY1", &PACKET_KEY1);
 	_Parse.GetValue("PACKET_KEY2", &PACKET_KEY2);
