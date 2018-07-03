@@ -18,7 +18,10 @@ int main()
 		wprintf(L"[MasterServer :: Main]	Config Error\n");
 		return false;
 	}
-
+	//-----------------------------------------------------------
+	// Packet Code 설정
+	//-----------------------------------------------------------
+	CPacket::Init(Server._Config.PACKET_CODE, Server._Config.PACKET_KEY1, Server._Config.PACKET_KEY2);
 	//-----------------------------------------------------------
 	// 매칭전용 마스터서버 Start
 	//-----------------------------------------------------------
