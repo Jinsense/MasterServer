@@ -8,7 +8,7 @@ CMasterServer::CMasterServer()
 	_pMatchMaster->Set(this);
 	_pMonitor = new CLanClient;
 	_pMonitor->Constructor(this);
-	_pLog->GetInstance;
+	_pLog = _pLog->GetInstance();
 
 	InitializeSRWLock(&_MatchServerNo_lock);
 	InitializeSRWLock(&_ClientKey_lock);
@@ -89,7 +89,46 @@ CLIENT* CMasterServer::FindClientKey(int ClientKey)
 void CMasterServer::MonitorPrintThead_Update()
 {
 	//	모니터링 항목 출력 스레드
+	wprintf(L"\n\n");
+	struct tm *t = new struct tm;
+	time_t timer;
+	timer = time(NULL);
+	localtime_s(t, &timer);
 
+	int year = t->tm_year + 1900;
+	int month = t->tm_mon + 1;
+	int day = t->tm_mday;
+	int hour = t->tm_hour;
+	int min = t->tm_min;
+	int sec = t->tm_sec;
+
+	while (1)
+	{
+		Sleep(1000);
+		_Cpu.UpdateCpuTime();
+
+		timer = time(NULL);
+		localtime_s(t, &timer);
+
+		if (true == _bMonitorMode)
+		{
+			wprintf(L"	[ServerStart : %d/%d/%d %d:%d:%d]\n\n", year, month, day, hour, min, sec);
+			wprintf(L"	[%d/%d/%d %d:%d:%d]\n\n", t->tm_year + 1900, t->tm_mon + 1,
+				t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+			wprintf(L"	마스터 CPU 사용률 (프로세스)	:	%d\n", _MasterServer_CPU_Process);
+			wprintf(L"	마스터 CPU 사용률 ( 전체 ) 	:	%d\n", _MasterServer_CPU_All);
+			wprintf(L"	마스터 메모리 유저 커밋 사용량	:	%d\n", _MasterServer_MemoryCommit);
+			wprintf(L"	마스터 패킷풀 사용량		:	%d\n\n", _MasterServer_PacketPool);
+			wprintf(L"	매치메이킹 서버 연결 수		:	%d\n", _MasterServer_Match_Connect);
+			wprintf(L"	매치메이킹 서버 로그인 수	:	%d\n", _MasterServer_Match_Login);
+			wprintf(L"	대기자 클라이언트		:	%d\n\n", _MasterServer_Stay_Client);
+			wprintf(L"	배틀 서버 연결 수		:	%d\n", _MasterServer_Battle_Connect);
+			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _MasterServer_Battle_Login);
+			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _MasterServer_Battle_WaitRoom);
+		}
+	}
+	delete t;
+	
 	return;
 }
 

@@ -14,7 +14,6 @@ CLanClient::CLanClient() :
 {
 	m_Session = new LANCLIENTSESSION;
 
-
 	setlocale(LC_ALL, "Korean");
 
 	m_hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
@@ -34,6 +33,7 @@ void CLanClient::Constructor(CMasterServer *pMaster)
 void CLanClient::OnEnterJoinServer()
 {
 	//	서버와의 연결 성공 후
+	m_Session->bConnect = true;
 	CPacket *pPacket = CPacket::Alloc();
 
 	WORD Type = en_PACKET_SS_MONITOR_LOGIN;
@@ -88,7 +88,6 @@ bool CLanClient::Connect(WCHAR * ServerIP, int Port, bool bNoDelay, int MaxWorke
 	m_Session->RecvQ.Clear();
 	m_Session->PacketQ.Clear();
 	m_Session->SendFlag = false;
-	m_Session->bConnect = true;
 
 	for (auto i = 0; i < MaxWorkerThread; i++)
 	{
@@ -133,6 +132,7 @@ bool CLanClient::Connect(WCHAR * ServerIP, int Port, bool bNoDelay, int MaxWorke
 		}
 		break;
 	}
+
 	InterlockedIncrement(&m_Session->IO_Count);
 	CreateIoCompletionPort((HANDLE)m_Session->sock, m_hIOCP, (ULONG_PTR)this, 0);
 

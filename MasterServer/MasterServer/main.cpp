@@ -41,11 +41,11 @@ int main()
 	//-----------------------------------------------------------
 	// 모니터링 서버 Connect
 	//-----------------------------------------------------------
-	if (false == Server._pMonitor->Connect(Server._Config.MONITOR_IP, Server._Config.MONITOR_PORT, true, LANCLIENT_WORKERTHREAD))
-	{
-		wprintf(L"[MatchServer :: Main] Monitoring Connect Error\n");
-		return false;
-	}
+//	if (false == Server._pMonitor->Connect(Server._Config.MONITOR_IP, Server._Config.MONITOR_PORT, true, LANCLIENT_WORKERTHREAD))
+//	{
+//		wprintf(L"[MatchServer :: Main] Monitoring Connect Error\n");
+//		return false;
+//	}
 	//-----------------------------------------------------------
 	// 콘솔 창 제어
 	//-----------------------------------------------------------
@@ -69,7 +69,7 @@ int main()
 			else
 			{
 				Server.SetMonitorMode(false);
-				wprintf(L"[MasterServer :: Main] MonitorMode Start\n");
+				wprintf(L"[MasterServer :: Main] MonitorMode End\n");
 			}
 		}
 		default:

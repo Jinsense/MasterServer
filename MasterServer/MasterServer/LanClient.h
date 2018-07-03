@@ -31,7 +31,8 @@ typedef struct st_LanClient
 		RecvQ(LANCLIENT_QUEUESIZE),
 		PacketQ(LANCLIENT_QUEUESIZE),
 		SendFlag(false),
-		IO_Count(0) {}
+		IO_Count(0),
+		bConnect(false){}
 }LANCLIENTSESSION;
 
 class CMasterServer;
