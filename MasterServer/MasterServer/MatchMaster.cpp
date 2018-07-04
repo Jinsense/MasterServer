@@ -275,8 +275,10 @@ bool CMatchMaster::ClientRelease(LANSESSION *pSession)
 	unsigned __int64 iClientID = pSession->iClientID;
 	unsigned __int64 iIndex = GET_INDEX(iIndex, iClientID);
 
+	AcquireSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
+	_pMaster->_MatchServerNoMap.erase(pSession->ServerNo);	
+	ReleaseSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
 
-	printf("[LanRelease] IP : %s\n", _ServerInfo[pSession->Index].IP);
 	ZeroMemory(&_ServerInfo[pSession->Index].IP, sizeof(_ServerInfo[pSession->Index].IP));
 	_ServerInfo[pSession->Index].Port = NULL;
 	_ServerInfo[pSession->Index].Login = false;
@@ -637,15 +639,15 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	{
 		bool Exist = false;
 		int ServerNo = NULL;
-		char MasterToken[32] = { 0, };
+		char MasterToken[33] = { 0, };
 		*pPacket >> ServerNo;
-		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken));
+		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken) - 1);
 
 		//	마스터 토큰 검사
 		if (0 != strcmp(_pMaster->_Config.MASTERTOKEN, MasterToken))
 		{
 			//	마스터 토큰이 다를 경우 로그 남기고 끊음
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"MasterToken Not Same [MatchServerNo : %d]"), ServerNo);
+			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"[MatchServerNo : %d] MasterToken Not Same "), ServerNo);
 			Disconnect(pSession->iClientID);
 			return true;
 		}

@@ -118,9 +118,9 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	마스터 CPU 사용률 (프로세스)	:	%d\n", _MasterServer_CPU_Process);
 			wprintf(L"	마스터 CPU 사용률 ( 전체 ) 	:	%d\n", _MasterServer_CPU_All);
 			wprintf(L"	마스터 메모리 유저 커밋 사용량	:	%d\n", _MasterServer_MemoryCommit);
-			wprintf(L"	마스터 패킷풀 사용량		:	%d\n\n", _MasterServer_PacketPool);
-			wprintf(L"	매치메이킹 서버 연결 수		:	%d\n", _MasterServer_Match_Connect);
-			wprintf(L"	매치메이킹 서버 로그인 수	:	%d\n", _MasterServer_Match_Login);
+			wprintf(L"	마스터 패킷풀 사용량		:	%d\n\n", CPacket::m_pMemoryPool->_UseCount);
+			wprintf(L"	매치메이킹 서버 연결 수		:	%d\n", _pMatchMaster->_iConnectClient);
+			wprintf(L"	매치메이킹 서버 로그인 수	:	%d\n", _pMatchMaster->_iLoginClient);
 			wprintf(L"	대기자 클라이언트		:	%d\n\n", _MasterServer_Stay_Client);
 			wprintf(L"	배틀 서버 연결 수		:	%d\n", _MasterServer_Battle_Connect);
 			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _MasterServer_Battle_Login);
@@ -140,15 +140,15 @@ void CMasterServer::LanMonitoringThread_Update()
 	while (1)
 	{
 		Sleep(1000);
+		PdhCollectQueryData(_CpuQuery);
+		PdhGetFormattedCounterValue(_ProcessPrivateBytes, PDH_FMT_DOUBLE, NULL, &_CounterVal);
+		_MasterServer_MemoryCommit = (int)_CounterVal.doubleValue / (1024 * 1024);
 		if (false == _pMonitor->IsConnect())
 		{
 			//	연결 상태가 아닐 경우 재접속 시도
 			_pMonitor->Connect(_Config.MONITOR_IP, _Config.MONITOR_PORT, true, LANCLIENT_WORKERTHREAD);
 			continue;
 		}
-		PdhCollectQueryData(_CpuQuery);
-		PdhGetFormattedCounterValue(_ProcessPrivateBytes, PDH_FMT_DOUBLE, NULL, &_CounterVal);
-		_MasterServer_MemoryCommit = (int)_CounterVal.doubleValue / (1024 * 1024);
 		//-------------------------------------------------------------
 		//	모니터링 서버에 전송할 패킷 생성 후 전송
 		//-------------------------------------------------------------
