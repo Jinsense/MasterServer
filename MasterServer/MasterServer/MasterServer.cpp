@@ -78,11 +78,11 @@ BattleServer* CMasterServer::FindBattleServerNo(int ServerNo)
 	return pBattleServer;
 }
 
-CLIENT* CMasterServer::FindClientKey(int ClientKey)
+CLIENT* CMasterServer::FindClientKey(UINT64 ClientKey)
 {
 	AcquireSRWLockExclusive(&_ClientKey_lock);
 	CLIENT* pClient = _ClientKeyMap.find(ClientKey)->second;
-	ReleaseSRWLockExclusive(&_BattleServer_lock);
+	ReleaseSRWLockExclusive(&_ClientKey_lock);
 	return pClient;
 }
 

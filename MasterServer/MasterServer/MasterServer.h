@@ -39,7 +39,7 @@ public:
 	// 사용자 정의 함수
 	//-----------------------------------------------------------
 	BattleServer*	FindBattleServerNo(int ServerNo);
-	CLIENT*			FindClientKey(int ClientKey);
+	CLIENT*			FindClientKey(UINT64 ClientKey);
 	bool			LanMonitorSendPacket(BYTE DataType);
 
 private:

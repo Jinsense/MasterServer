@@ -362,6 +362,7 @@ void CMatchMaster::AcceptThread_Update()
 
 		unsigned __int64 iIndex = *_iSessionNum;
 
+		_pSessionArray[*_iSessionNum].Index = *_iSessionNum;
 		_pSessionArray[*_iSessionNum].iClientID = _iClientIDCnt++;
 		SET_INDEX(iIndex, _pSessionArray[*_iSessionNum].iClientID);
 		_pSessionArray[*_iSessionNum].sock = clientSock;
@@ -705,6 +706,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		{
 			// not found
 			CLIENT * pClient = _pMaster->_ClientPool->Alloc();
+			pClient->ClientKey = ClientKey;
 			pClient->AccountNo = AccountNo;
 			pClient->MatchServerNo = pSession->ServerNo;
 			_pMaster->_ClientKeyMap.insert(make_pair(ClientKey, pClient));
@@ -778,7 +780,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	{
 		InterlockedIncrement64(&_pMaster->_BattleRoomEnterFail);
 
-		UINT ClientKey;
+		UINT64 ClientKey;
 		*pPacket >> ClientKey;
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
