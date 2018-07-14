@@ -754,6 +754,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
 			{
 				_pMaster->_RoomList.erase(i);
+				delete *i;
 				break;
 			}
 			continue;
