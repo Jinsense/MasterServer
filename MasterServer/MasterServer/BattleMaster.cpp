@@ -357,7 +357,7 @@ void CBattleMaster::AcceptThread_Update()
 		}
 
 		unsigned __int64 iIndex = *_iSessionNum;
-
+		_pSessionArray[*_iSessionNum].Index = *_iSessionNum;
 		_pSessionArray[*_iSessionNum].iClientID = _iClientIDCnt++;
 		SET_INDEX(iIndex, _pSessionArray[*_iSessionNum].iClientID);
 		_pSessionArray[*_iSessionNum].sock = clientSock;
@@ -644,8 +644,9 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		pPacket->PopData((char*)&pBattleServer->ChatServerIP, sizeof(pBattleServer->ChatServerIP));
 		*pPacket >> pBattleServer->ChatServerPort;
 
+
 		//	마스터 토큰 검사
-		if (0 != strcmp(_pMaster->_Config.MASTERTOKEN, pBattleServer->MasterToken))
+		if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, pBattleServer->MasterToken, sizeof(_pMaster->_Config.MASTERTOKEN)))
 		{
 			//	마스터 토큰이 다를 경우 로그 남기고 끊음
 			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"MasterToken Not Same [MatchServerNo : %s]"), pBattleServer->ServerIP);
@@ -666,8 +667,8 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		//	int  - BattleServerNo ( 마스터 서버가 부여 )
 		//-------------------------------------------------------------
 		InterlockedIncrement(&_iLoginClient);
-		Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
 		CPacket *newPacket = CPacket::Alloc();
+		Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
 		*newPacket << Type << pBattleServer->ServerNo;
 		SendPacket(pSession->iClientID, newPacket);
 		newPacket->Free();
@@ -679,7 +680,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//	char	- ConnectToken[32]
 	//	UINT	- ReqSequence
 	//-------------------------------------------------------------
-	else if (en_PACKET_BAT_MAS_REQ_CONNECT_TOKEN)
+	else if (Type == en_PACKET_BAT_MAS_REQ_CONNECT_TOKEN)
 	{
 		UINT ReqSequence;
 		BattleServer * pBattleServer = FindBattleServerNo(pSession->ServerNo);
@@ -712,7 +713,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//	char	- EnterToken[32]
 	//	UINT	- ReqSequence
 	//-------------------------------------------------------------
-	else if (en_PACKET_BAT_MAS_REQ_CREATED_ROOM)
+	else if (Type == en_PACKET_BAT_MAS_REQ_CREATED_ROOM)
 	{
 		BattleRoom *pBattleRoom = new BattleRoom;
 		UINT ReqSequence;
@@ -743,7 +744,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//	int		- RoomNo
 	//	UINT	- ReqSequence
 	//-------------------------------------------------------------
-	else if (en_PACKET_BAT_MAS_REQ_CLOSED_ROOM)
+	else if (Type == en_PACKET_BAT_MAS_REQ_CLOSED_ROOM)
 	{
 		int RoomNo;
 		UINT ReqSequence;
@@ -779,7 +780,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//	INT64	- AccountNo
 	//	UINT	- ReqSequence
 	//-------------------------------------------------------------
-	else if (en_PACKET_BAT_MAS_REQ_LEFT_USER)
+	else if (Type == en_PACKET_BAT_MAS_REQ_LEFT_USER)
 	{
 		int RoomNo;
 		INT64 AccountNo;

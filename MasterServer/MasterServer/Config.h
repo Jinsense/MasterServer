@@ -35,7 +35,7 @@ public:
 	int WORKER_THREAD;
 	int SERVER_TIMEOUT;
 	int CLIENT_MAX;
-	char MASTERTOKEN[33];
+	char MASTERTOKEN[32];
 	int MASTERTOKEN_SIZE;
 	int PACKET_CODE;
 	int PACKET_KEY1;
@@ -47,9 +47,6 @@ public:
 private:
 	char IP[60];
 };
-
-
-
 
 
 #endif // !_MASTERSERVER_SERVER_CONFIG_H_

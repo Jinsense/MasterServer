@@ -122,9 +122,9 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	매치메이킹 서버 연결 수		:	%d\n", _pMatchMaster->_iConnectClient);
 			wprintf(L"	매치메이킹 서버 로그인 수	:	%d\n", _pMatchMaster->_iLoginClient);
 			wprintf(L"	대기자 클라이언트		:	%d\n\n", _MasterServer_Stay_Client);
-			wprintf(L"	배틀 서버 연결 수		:	%d\n", _MasterServer_Battle_Connect);
-			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _MasterServer_Battle_Login);
-			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _MasterServer_Battle_WaitRoom);
+			wprintf(L"	배틀 서버 연결 수		:	%d\n", _pBattleMaster->_iConnectClient);
+			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _pBattleMaster->_iLoginClient);
+			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _RoomList.size());
 		}
 	}
 	delete t;
