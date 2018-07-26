@@ -284,7 +284,11 @@ bool CMatchMaster::ClientRelease(LANSESSION *pSession)
 	_ServerInfo[pSession->Index].Login = false;
 
 	InterlockedDecrement(&_iConnectClient);
-	InterlockedDecrement(&_iLoginClient);
+	if (true == pSession->bLoginPacketCheck)
+	{
+		pSession->bLoginPacketCheck = false;
+		InterlockedDecrement(&_iLoginClient);
+	}
 	PutIndex(iIndex);
 	return true;
 }
@@ -640,12 +644,12 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	{
 		bool Exist = false;
 		int ServerNo = NULL;
-		char MasterToken[33] = { 0, };
+		char MasterToken[32] = { 0, };
 		*pPacket >> ServerNo;
-		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken) - 1);
+		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken));
 
 		//	마스터 토큰 검사
-		if (0 != strcmp(_pMaster->_Config.MASTERTOKEN, MasterToken))
+		if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, MasterToken, sizeof(MasterToken)))
 		{
 			//	마스터 토큰이 다를 경우 로그 남기고 끊음
 			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"[MatchServerNo : %d] MasterToken Not Same "), ServerNo);
@@ -678,6 +682,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		else
 		{
 			InterlockedIncrement(&_iLoginClient);
+			pSession->bLoginPacketCheck = true;
 			//	매치서버 켜짐 수신 확인
 			CPacket *newPacket = CPacket::Alloc();
 			Type = en_PACKET_MAT_MAS_RES_SERVER_ON;

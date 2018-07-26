@@ -273,15 +273,37 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	unsigned __int64 iClientID = pSession->iClientID;
 	unsigned __int64 iIndex = GET_INDEX(iIndex, iClientID);
 
-
-	printf("[LanRelease] IP : %s\n", _ServerInfo[pSession->Index].IP);
 	ZeroMemory(&_ServerInfo[pSession->Index].IP, sizeof(_ServerInfo[pSession->Index].IP));
 	_ServerInfo[pSession->Index].Port = NULL;
 	_ServerInfo[pSession->Index].Login = false;
 
 	InterlockedDecrement(&_iConnectClient);
-	InterlockedDecrement(&_iLoginClient);
+	if (true == pSession->bLoginPacketCheck)
+	{
+		pSession->bLoginPacketCheck = false;
+		InterlockedDecrement(&_iLoginClient);
+	}
+
+	BattleServer * pBattleServer = FindBattleServerNo(pSession->ServerNo);
+	AcquireSRWLockExclusive(&_pMaster->_BattleServer_lock);
+	_pMaster->_BattleServerMap.erase(pSession->ServerNo);
+	ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
+	
+	std::list<BattleRoom*>::iterator iter;
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+	for (iter = _pMaster->_RoomList.begin(); iter != _pMaster->_RoomList.end();)
+	{
+		if (pSession->ServerNo == (*iter)->BattleServerNo)
+			_pMaster->_RoomList.erase(iter++);
+		else
+			iter++;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+
 	PutIndex(iIndex);
+
+	if (nullptr != pBattleServer)
+		delete pBattleServer;
 	return true;
 }
 
@@ -667,6 +689,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		//	int  - BattleServerNo ( 마스터 서버가 부여 )
 		//-------------------------------------------------------------
 		InterlockedIncrement(&_iLoginClient);
+		pSession->bLoginPacketCheck = true;
 		CPacket *newPacket = CPacket::Alloc();
 		Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
 		*newPacket << Type << pBattleServer->ServerNo;
@@ -721,9 +744,9 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		pPacket->PopData((char*)&pBattleRoom->EnterToken, sizeof(pBattleRoom->EnterToken));
 		*pPacket >> ReqSequence;
 
-		AcquireSRWLockExclusive(&_pMaster->_BattleServer_lock);
+		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		_pMaster->_RoomList.push_back(pBattleRoom);
-		ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
+		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 		ReqSequence++;
 		//-------------------------------------------------------------
 		//	배틀서버에게 신규 대기 방 생성 수신 응답
@@ -733,7 +756,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		//-------------------------------------------------------------
 		Type = en_PACKET_BAT_MAS_RES_CREATED_ROOM;
 		CPacket *newPacket = CPacket::Alloc();
-		*newPacket << Type << pBattleRoom->RoomNo >> ReqSequence;
+		*newPacket << Type << pBattleRoom->RoomNo << ReqSequence;
 		SendPacket(pSession->iClientID, newPacket);
 		newPacket->Free();
 		return true;

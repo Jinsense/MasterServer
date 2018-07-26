@@ -65,7 +65,8 @@ typedef struct st_Client
 	int					ServerNo;
 	char				IP[20];
 	unsigned short		Port;
-	bool				bLoginFlag;
+	bool				bLoginPacketCheck;	//	로그인 패킷을 통해 로그인이 성공했는지 여부
+	bool				bLoginFlag;			//	세션 배열에서 해당 세션이 로그인 상태인지 여부
 	bool				bRelease;
 	int					Index;
 	long				lIOCount;
@@ -82,7 +83,9 @@ typedef struct st_Client
 		RecvQ(LAN_QUEUE_SIZE),
 		PacketQ(LAN_QUEUE_SIZE),
 		lIOCount(0),
-		lSendFlag(true) {}
+		lSendFlag(true),
+		bLoginPacketCheck(false)
+		{}
 }LANSESSION;
 
 typedef struct st_RoomPlayerInfo

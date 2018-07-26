@@ -93,7 +93,7 @@ private:
 	HANDLE					_hAcceptThread;
 	HANDLE					_hMonitorThread;
 	HANDLE					_hAllthread[200];
-
+					
 	bool					_bWhiteIPMode;
 	bool					_bShutdown;
 
