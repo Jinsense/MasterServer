@@ -294,7 +294,11 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	for (iter = _pMaster->_RoomList.begin(); iter != _pMaster->_RoomList.end();)
 	{
 		if (pSession->ServerNo == (*iter)->BattleServerNo)
-			_pMaster->_RoomList.erase(iter++);
+		{
+			BattleRoom * pRoom = *iter;
+			iter = _pMaster->_RoomList.erase(iter);
+			delete pRoom;
+		}
 		else
 			iter++;
 	}
