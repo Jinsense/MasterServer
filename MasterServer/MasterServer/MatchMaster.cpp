@@ -788,6 +788,11 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		UINT64 ClientKey;
 		*pPacket >> ClientKey;
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+		if (nullptr == pClient)
+		{
+			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"Not Find ClientKey"));
+
+		}
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
 		{

@@ -744,6 +744,8 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	{
 		BattleRoom *pBattleRoom = new BattleRoom;
 		UINT ReqSequence;
+		pBattleRoom->CurUser = 0;
+		pBattleRoom->RoomPlayer.clear();
 		*pPacket >> pBattleRoom->BattleServerNo >> pBattleRoom->RoomNo >> pBattleRoom->MaxUser;
 		pPacket->PopData((char*)&pBattleRoom->EnterToken, sizeof(pBattleRoom->EnterToken));
 		*pPacket >> ReqSequence;
