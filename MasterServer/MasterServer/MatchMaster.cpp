@@ -735,11 +735,13 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		}
 		//	방 리스트에서 사람이 남는 방을 하나 선택하여 보내준다.
 //		list<BattleRoom*>::iterator iter;
+		int RoomNo = NULL;
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
 		{
 			if ((*i)->MaxUser <= (*i)->CurUser)
 				continue;
+			RoomNo = (*i)->RoomNo;
 			RoomPlayerInfo RoomPlayer;
 			RoomPlayer.AccountNo = AccountNo;
 			RoomPlayer.ClientKey = ClientKey;
@@ -755,13 +757,16 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			*newPacket << Info->Port << (*i)->RoomNo;
 			newPacket->PushData((char*)&Info->ConnectToken, sizeof(Info->ConnectToken));
 			newPacket->PushData((char*)&(*i)->EnterToken, sizeof((*i)->EnterToken));
-			newPacket->PushData((char*)&Info->ChatServerIP, sizeof(Info->ChatServerIP));
+			newPacket->PushData((char*)&Info->ChatServerIP[0], sizeof(Info->ChatServerIP));
 			*newPacket << Info->ChatServerPort;
 			SendPacket(pSession->iClientID, newPacket);
 			newPacket->Free();
 			break;
 		}
 		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+		pClient->BattleRoomNo = RoomNo;
+
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -790,8 +795,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
 		if (nullptr == pClient)
 		{
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"Not Find ClientKey"));
-
+			return true;
 		}
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
@@ -799,14 +803,16 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			if ((*i)->RoomNo == pClient->BattleRoomNo)
 			{
 				//	방에 아직 존재하는 유저인지 확인
-				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end(); iter++)
+				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
 				{
 					if (iter->ClientKey == ClientKey)
 					{
-						(*i)->RoomPlayer.erase(iter);
+						iter = (*i)->RoomPlayer.erase(iter);
 						(*i)->CurUser--;
 						break;
 					}
+					else
+						iter++;
 					continue;
 				}
 				break;

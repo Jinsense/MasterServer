@@ -694,9 +694,10 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		//-------------------------------------------------------------
 		InterlockedIncrement(&_iLoginClient);
 		pSession->bLoginPacketCheck = true;
+		int ServerNo = pBattleServer->ServerNo;
 		CPacket *newPacket = CPacket::Alloc();
 		Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
-		*newPacket << Type << pBattleServer->ServerNo;
+		*newPacket << Type << ServerNo;
 		SendPacket(pSession->iClientID, newPacket);
 		newPacket->Free();
 		return true;

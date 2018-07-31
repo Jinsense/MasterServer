@@ -113,7 +113,7 @@ typedef struct st_BattleServer
 
 	WCHAR	ChatServerIP[16];
 	WORD	ChatServerPort;
-	long	ServerNo;
+	WORD	ServerNo;
 }BattleServer;
 
 #endif 
