@@ -297,6 +297,7 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 		{
 			BattleRoom * pRoom = *iter;
 			iter = _pMaster->_RoomList.erase(iter);
+			InterlockedDecrement(&_pMaster->_RoomCount);
 			delete pRoom;
 		}
 		else
@@ -753,6 +754,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		_pMaster->_RoomList.push_back(pBattleRoom);
+		InterlockedIncrement(&_pMaster->_RoomCount);
 		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 		ReqSequence++;
 		//-------------------------------------------------------------
@@ -785,6 +787,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
 			{
 				_pMaster->_RoomList.erase(i);
+				InterlockedDecrement(&_pMaster->_RoomCount);
 				delete *i;
 				break;
 			}
@@ -823,14 +826,16 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			{
 				//	내부에 AccountNo를 비교하여 실제 방에 아직 존재하는 유저인지 확인 후 차감 할 것
 				//	MatchMaster를 통해 2번 차감 될 수 있음
-				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end(); iter++)
+				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
 				{
 					if (iter->AccountNo == AccountNo)
 					{
-						(*i)->RoomPlayer.erase(iter);
-						(*i)->CurUser--;
+						iter = (*i)->RoomPlayer.erase(iter);
+						InterlockedDecrement(&(*i)->CurUser);
 						break;
 					}
+					else
+						iter++;
 					continue;
 				}
 				break;

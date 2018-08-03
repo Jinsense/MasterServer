@@ -20,6 +20,7 @@ CMasterServer::CMasterServer()
 	_bShutDown = false;
 	_bMonitorMode = true;
 	_BattleRoomEnterFail = NULL;
+	_RoomCount = 0;
 
 	_BattleServerNo = 0;
 	_TimeStamp = NULL;
@@ -124,7 +125,7 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	대기자 클라이언트		:	%d\n\n", _MasterServer_Stay_Client);
 			wprintf(L"	배틀 서버 연결 수		:	%d\n", _pBattleMaster->_iConnectClient);
 			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _pBattleMaster->_iLoginClient);
-			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _RoomList.size());
+			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _RoomCount);
 		}
 	}
 	delete t;

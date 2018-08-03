@@ -99,7 +99,7 @@ typedef struct st_BattleRoom
 	long BattleServerNo;
 	int RoomNo;
 	int MaxUser;
-	int CurUser;
+	long CurUser;
 	char EnterToken[32];
 	std::vector<RoomPlayerInfo> RoomPlayer;
 }BattleRoom;

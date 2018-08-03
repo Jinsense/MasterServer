@@ -16,6 +16,7 @@ typedef struct st_CLIENTINFO
 {
 	UINT64 ClientKey;
 	UINT64 AccountNo;
+	WORD BattleServerNo;
 	int BattleRoomNo;
 	int MatchServerNo;
 
@@ -101,7 +102,7 @@ public:
 	//-----------------------------------------------------------
 	std::list<BattleRoom*>		_RoomList;
 	SRWLOCK		_Room_lock;
-
+	long 		_RoomCount;
 	//-----------------------------------------------------------
 	// 모니터링 변수
 	//-----------------------------------------------------------
