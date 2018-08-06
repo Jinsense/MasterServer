@@ -21,6 +21,7 @@ CMasterServer::CMasterServer()
 	_bMonitorMode = true;
 	_BattleRoomEnterFail = NULL;
 	_RoomCount = 0;
+	_WaitRoomCount = 0;
 
 	_BattleServerNo = 0;
 	_TimeStamp = NULL;
@@ -116,16 +117,22 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	[ServerStart : %d/%d/%d %d:%d:%d]\n\n", year, month, day, hour, min, sec);
 			wprintf(L"	[%d/%d/%d %d:%d:%d]\n\n", t->tm_year + 1900, t->tm_mon + 1,
 				t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-			wprintf(L"	마스터 CPU 사용률 (프로세스)	:	%d\n", _MasterServer_CPU_Process);
-			wprintf(L"	마스터 CPU 사용률 ( 전체 ) 	:	%d\n", _MasterServer_CPU_All);
-			wprintf(L"	마스터 메모리 유저 커밋 사용량	:	%d\n", _MasterServer_MemoryCommit);
-			wprintf(L"	마스터 패킷풀 사용량		:	%d\n\n", CPacket::m_pMemoryPool->_UseCount);
-			wprintf(L"	매치메이킹 서버 연결 수		:	%d\n", _pMatchMaster->_iConnectClient);
-			wprintf(L"	매치메이킹 서버 로그인 수	:	%d\n", _pMatchMaster->_iLoginClient);
-			wprintf(L"	대기자 클라이언트		:	%d\n\n", _MasterServer_Stay_Client);
-			wprintf(L"	배틀 서버 연결 수		:	%d\n", _pBattleMaster->_iConnectClient);
-			wprintf(L"	배틀 서버 로그인 수		:	%d\n", _pBattleMaster->_iLoginClient);
-			wprintf(L"	배틀 서버 대기방		:	%d\n\n", _RoomCount);
+			wprintf(L"	Master CPU (Process)		:	%d\n", _MasterServer_CPU_Process);
+			wprintf(L"	Master CPU ( ALL )		:	%d\n", _MasterServer_CPU_All);
+			wprintf(L"	Master Memory UserCommit	:	%d\n", _MasterServer_MemoryCommit);
+			wprintf(L"	Master PacketPool UseCount	:	%d\n", CPacket::m_pMemoryPool->_UseCount);
+			wprintf(L"	Master ClientPool UseCount	:	%d\n\n", _ClientPool->GetUseCount());
+			wprintf(L"	MatchMaking Server Connect	:	%d\n", _pMatchMaster->_iConnectClient);
+			wprintf(L"	MatchMaking Server Login	:	%d\n", _pMatchMaster->_iLoginClient);
+			wprintf(L"	MatchMaking Wait Client		:	%d\n\n", _MasterServer_Stay_Client);
+			wprintf(L"	Battle Server Connect		:	%d\n", _pBattleMaster->_iConnectClient);
+			wprintf(L"	Battle Server Login		:	%d\n", _pBattleMaster->_iLoginClient);
+			wprintf(L"	Battle Server RoomList Size	:	%d\n", _RoomCount);
+			wprintf(L"	Battle Server WaitRoom Count	:	%d\n\n", _WaitRoomCount);
+
+			wprintf(L"	Match NotFindClientKey		:	%I64d\n", _pMatchMaster->_NotFindClientKey);
+			wprintf(L"	ClientKeyMap Size		:	%d\n\n", _ClientKeyMap.size());
+
 		}
 	}
 	delete t;

@@ -82,6 +82,8 @@ public:
 
 	SERVERINFO				_ServerInfo[LAN_SERVER_NUM];
 
+
+	__int64		_NotFindClientKey;
 private:
 	CLockFreeStack<UINT64*>	_SessionStack;
 	LANCOMPARE				*_pIOCompare;
@@ -102,6 +104,7 @@ private:
 	unsigned __int64		_iClientIDCnt;
 
 	CMasterServer			*_pMaster;
+
 };
 
 

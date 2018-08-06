@@ -12,6 +12,8 @@ using namespace std;
 
 CMatchMaster::CMatchMaster()
 {
+	_NotFindClientKey = 0;
+
 	_pIOCompare = nullptr;
 	_pSessionArray = nullptr;
 	_listensock = INVALID_SOCKET;
@@ -701,15 +703,14 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	else if (en_PACKET_MAT_MAS_REQ_GAME_ROOM == Type)
 	{
 		CLIENT * pClient = nullptr;
-		//	방이 있으면 방을 돌려주고 없으면 없음을 돌려줌
 		UINT64 ClientKey;
 		UINT64 AccountNo;
 		*pPacket >> ClientKey >> AccountNo;
-		std::map<UINT64, CLIENT*>::iterator iter;
+		std::map<UINT64, CLIENT*>::iterator map_iter;
 		//	이미 있는 키값인지 인지 검사
 		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		iter = _pMaster->_ClientKeyMap.find(ClientKey);
-		if (iter == _pMaster->_ClientKeyMap.end())
+		map_iter = _pMaster->_ClientKeyMap.find(ClientKey);
+		if (map_iter == _pMaster->_ClientKeyMap.end())
 		{
 			// not found
 			CLIENT * pNewClient = _pMaster->_ClientPool->Alloc();
@@ -719,14 +720,34 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			_pMaster->_ClientKeyMap.insert(make_pair(ClientKey, pNewClient));
 			pClient = pNewClient;
 		}
-		else 
+		else
 		{
 			// found
-			pClient = (*iter).second;
+			pClient = (*map_iter).second;
 		}
 		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
+		//	방 리스트에서 사람이 남는 방을 하나 선택하여 보내준다.
+		std::list<BattleRoom*>::iterator list_iter;
+		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+		for (list_iter = _pMaster->_RoomList.begin(); list_iter != _pMaster->_RoomList.end(); list_iter++)
+		{
+			if ((*list_iter)->MaxUser <= (*list_iter)->CurUser)
+				continue;
+			pClient->BattleRoomNo = (*list_iter)->RoomNo;
+			pClient->BattleServerNo = (*list_iter)->BattleServerNo;
+			RoomPlayerInfo RoomPlayer;
+			RoomPlayer.AccountNo = AccountNo;
+			RoomPlayer.ClientKey = ClientKey;
+			(*list_iter)->RoomPlayer.push_back(RoomPlayer);
+			if ((*list_iter)->MaxUser == InterlockedIncrement(&(*list_iter)->CurUser))
+				InterlockedDecrement(&_pMaster->_WaitRoomCount);
+			break;
+		}
+		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+
 		//	방이 존재하는지 체크
-		if (0 == _pMaster->_RoomCount)
+		if (list_iter == _pMaster->_RoomList.end())
 		{
 			CPacket *newPacket = CPacket::Alloc();
 			Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
@@ -734,39 +755,28 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 			*newPacket << Type << ClientKey << Status;
 			SendPacket(pSession->iClientID, newPacket);
 			newPacket->Free();
+
+			AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+			_pMaster->_ClientKeyMap.erase(ClientKey);
+			ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+			_pMaster->_ClientPool->Free(pClient);
 			return true;
 		}
-		//	방 리스트에서 사람이 남는 방을 하나 선택하여 보내준다.
-//		list<BattleRoom*>::iterator iter;
-		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
-		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
-		{
-			if ((*i)->MaxUser <= (*i)->CurUser)
-				continue;
-			pClient->BattleRoomNo = (*i)->RoomNo;
-			pClient->BattleServerNo = (*i)->BattleServerNo;
-			RoomPlayerInfo RoomPlayer;
-			RoomPlayer.AccountNo = AccountNo;
-			RoomPlayer.ClientKey = ClientKey;
-			(*i)->RoomPlayer.push_back(RoomPlayer);
-			InterlockedIncrement(&(*i)->CurUser);
-			//	데드락 위험성 있음 - 데드락 발생 시 구조 변경할 것
-			BattleServer* Info = _pMaster->FindBattleServerNo((*i)->BattleServerNo);
-			CPacket *newPacket = CPacket::Alloc();
-			Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
-			BYTE Status = 1;
-			*newPacket << Type << ClientKey << Status << Info->ServerNo;
-			newPacket->PushData((char*)&Info->ServerIP, sizeof(Info->ServerIP));
-			*newPacket << Info->Port << (*i)->RoomNo;
-			newPacket->PushData((char*)&Info->ConnectToken, sizeof(Info->ConnectToken));
-			newPacket->PushData((char*)&(*i)->EnterToken, sizeof((*i)->EnterToken));
-			newPacket->PushData((char*)&Info->ChatServerIP[0], sizeof(Info->ChatServerIP));
-			*newPacket << Info->ChatServerPort;
-			SendPacket(pSession->iClientID, newPacket);
-			newPacket->Free();
-			break;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+
+		//	데드락 위험성 있음 - 데드락 발생 시 구조 변경할 것
+		BattleServer* Info = _pMaster->FindBattleServerNo((*list_iter)->BattleServerNo);
+		CPacket *newPacket = CPacket::Alloc();
+		Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
+		BYTE Status = 1;
+		*newPacket << Type << ClientKey << Status << Info->ServerNo;
+		newPacket->PushData((char*)&Info->ServerIP, sizeof(Info->ServerIP));
+		*newPacket << Info->Port << (*list_iter)->RoomNo;
+		newPacket->PushData((char*)&Info->ConnectToken, sizeof(Info->ConnectToken));
+		newPacket->PushData((char*)&(*list_iter)->EnterToken, sizeof((*list_iter)->EnterToken));
+		newPacket->PushData((char*)&Info->ChatServerIP[0], sizeof(Info->ChatServerIP));
+		*newPacket << Info->ChatServerPort;
+		SendPacket(pSession->iClientID, newPacket);
+		newPacket->Free();
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -795,6 +805,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
 		if (nullptr == pClient)
 		{
+			InterlockedIncrement64(&_NotFindClientKey);
 			return true;
 		}
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
@@ -807,8 +818,9 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 				{
 					if (iter->ClientKey == ClientKey)
 					{
+						if ((*i)->MaxUser - 1 == InterlockedDecrement(&(*i)->CurUser))
+							InterlockedIncrement(&_pMaster->_WaitRoomCount);
 						iter = (*i)->RoomPlayer.erase(iter);
-						InterlockedDecrement(&(*i)->CurUser);
 						break;
 					}
 					else
@@ -823,6 +835,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 		_pMaster->_ClientKeyMap.erase(ClientKey);
 		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientPool->Free(pClient);
 		return true;
 	}
 	return true;

@@ -103,6 +103,7 @@ public:
 	std::list<BattleRoom*>		_RoomList;
 	SRWLOCK		_Room_lock;
 	long 		_RoomCount;
+	long		_WaitRoomCount;
 	//-----------------------------------------------------------
 	// 모니터링 변수
 	//-----------------------------------------------------------

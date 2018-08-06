@@ -295,7 +295,10 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	{
 		if (pSession->ServerNo == (*iter)->BattleServerNo)
 		{
+			//	배틀 서버가 끊어졌을 때 해당 서버에 해당하는 방을 삭제
 			BattleRoom * pRoom = *iter;
+			if (pRoom->MaxUser != pRoom->RoomPlayer.size())
+				InterlockedDecrement(&_pMaster->_WaitRoomCount);
 			iter = _pMaster->_RoomList.erase(iter);
 			InterlockedDecrement(&_pMaster->_RoomCount);
 			delete pRoom;
@@ -755,6 +758,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 		_pMaster->_RoomList.push_back(pBattleRoom);
 		InterlockedIncrement(&_pMaster->_RoomCount);
+		InterlockedIncrement(&_pMaster->_WaitRoomCount);
 		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 		ReqSequence++;
 		//-------------------------------------------------------------
@@ -782,15 +786,18 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		UINT ReqSequence;
 		*pPacket >> RoomNo >> ReqSequence;
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
-		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
+		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end();)
 		{
 			if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
 			{
-				_pMaster->_RoomList.erase(i);
+				BattleRoom * pRoom = *i;
+				i = _pMaster->_RoomList.erase(i);
 				InterlockedDecrement(&_pMaster->_RoomCount);
-				delete *i;
+				delete pRoom;
 				break;
 			}
+			else 
+				i++;
 			continue;
 		}		
 		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
@@ -830,8 +837,9 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 				{
 					if (iter->AccountNo == AccountNo)
 					{
+						if((*i)->MaxUser - 1 == InterlockedDecrement(&(*i)->CurUser))
+							InterlockedIncrement(&_pMaster->_WaitRoomCount);
 						iter = (*i)->RoomPlayer.erase(iter);
-						InterlockedDecrement(&(*i)->CurUser);
 						break;
 					}
 					else
@@ -848,7 +856,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		//	배틀서버에게 방 유저 나감 수신 확인
 		//	Type - en_PACKET_BAT_MAS_RES_LEFT_USER
 		//-------------------------------------------------------------
-		Type = en_PACKET_BAT_MAS_REQ_LEFT_USER;
+		Type = en_PACKET_BAT_MAS_RES_LEFT_USER;
 		CPacket *newPacket = CPacket::Alloc();
 		*newPacket << Type << RoomNo << ReqSequence;
 		SendPacket(pSession->iClientID, newPacket);
