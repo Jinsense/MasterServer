@@ -1,5 +1,6 @@
 #include "MasterServer.h"
 
+
 CMasterServer::CMasterServer()
 {
 	_pBattleMaster = new CBattleMaster;
@@ -13,15 +14,16 @@ CMasterServer::CMasterServer()
 	InitializeSRWLock(&_MatchServerNo_lock);
 	InitializeSRWLock(&_ClientKey_lock);
 	InitializeSRWLock(&_BattleServer_lock);
-	InitializeSRWLock(&_Room_lock);
+	InitializeSRWLock(&_WaitRoom_lock);
+	InitializeSRWLock(&_FullRoom_lock);
+	InitializeSRWLock(&_RoomPlayer_lock);
+
 	
 	_ClientPool = new CMemoryPool<CLIENT>();
 
 	_bShutDown = false;
 	_bMonitorMode = true;
 	_BattleRoomEnterFail = NULL;
-	_RoomCount = 0;
-	_WaitRoomCount = 0;
 
 	_BattleServerNo = 0;
 	_TimeStamp = NULL;
@@ -121,18 +123,15 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	Master CPU ( ALL )		:	%d\n", _MasterServer_CPU_All);
 			wprintf(L"	Master Memory UserCommit	:	%d\n", _MasterServer_MemoryCommit);
 			wprintf(L"	Master PacketPool UseCount	:	%d\n", CPacket::m_pMemoryPool->_UseCount);
-			wprintf(L"	Master ClientPool UseCount	:	%d\n\n", _ClientPool->GetUseCount());
+			wprintf(L"	Master ClientPool UseCount	:	%d\n", _ClientPool->GetUseCount());
+			wprintf(L"	ClientKeyMap Size		:	%d\n\n", _ClientKeyMap.size());
 			wprintf(L"	MatchMaking Server Connect	:	%d\n", _pMatchMaster->_iConnectClient);
 			wprintf(L"	MatchMaking Server Login	:	%d\n", _pMatchMaster->_iLoginClient);
 			wprintf(L"	MatchMaking Wait Client		:	%d\n\n", _MasterServer_Stay_Client);
 			wprintf(L"	Battle Server Connect		:	%d\n", _pBattleMaster->_iConnectClient);
 			wprintf(L"	Battle Server Login		:	%d\n", _pBattleMaster->_iLoginClient);
-			wprintf(L"	Battle Server RoomList Size	:	%d\n", _RoomCount);
-			wprintf(L"	Battle Server WaitRoom Count	:	%d\n\n", _WaitRoomCount);
-
-			wprintf(L"	Match NotFindClientKey		:	%I64d\n", _pMatchMaster->_NotFindClientKey);
-			wprintf(L"	ClientKeyMap Size		:	%d\n\n", _ClientKeyMap.size());
-
+			wprintf(L"	Battle Server WaitRoomList	:	%d\n", _WaitRoomList.size());
+			wprintf(L"	Battle Server FullRoomList 	:	%d\n\n", _FullRoomList.size());
 		}
 	}
 	delete t;

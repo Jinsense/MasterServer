@@ -6,21 +6,12 @@
 #include "CpuUsage.h"
 #include "EtherNet_PDH.h"
 #include "LanClient.h"
+#include "LanServer.h"
 #include "BattleMaster.h"
 #include "MatchMaster.h"
 
 class CMatchMaster;
 class CBattleMaster;
-
-typedef struct st_CLIENTINFO
-{
-	UINT64 ClientKey;
-	UINT64 AccountNo;
-	WORD BattleServerNo;
-	int BattleRoomNo;
-	int MatchServerNo;
-
-}CLIENT;
 
 class CMasterServer
 {
@@ -100,10 +91,11 @@ public:
 	//-----------------------------------------------------------
 	// 배틀서버 방 관리
 	//-----------------------------------------------------------
-	std::list<BattleRoom*>		_RoomList;
-	SRWLOCK		_Room_lock;
-	long 		_RoomCount;
-	long		_WaitRoomCount;
+	std::list<BattleRoom*>	_WaitRoomList;
+	std::list<BattleRoom*>	_FullRoomList;
+	SRWLOCK		_WaitRoom_lock;
+	SRWLOCK		_FullRoom_lock;
+	SRWLOCK		_RoomPlayer_lock;
 	//-----------------------------------------------------------
 	// 모니터링 변수
 	//-----------------------------------------------------------

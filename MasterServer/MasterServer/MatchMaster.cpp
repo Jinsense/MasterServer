@@ -7,13 +7,12 @@
 #include <iostream>
 
 #include "MatchMaster.h"
+#include "MasterServer.h"
 
 using namespace std;
 
 CMatchMaster::CMatchMaster()
 {
-	_NotFindClientKey = 0;
-
 	_pIOCompare = nullptr;
 	_pSessionArray = nullptr;
 	_listensock = INVALID_SOCKET;
@@ -644,54 +643,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-----------------------------------------------------------
 	if (en_PACKET_MAT_MAS_REQ_SERVER_ON == Type)
 	{
-		bool Exist = false;
-		int ServerNo = NULL;
-		char MasterToken[32] = { 0, };
-		*pPacket >> ServerNo;
-		pPacket->PopData((char*)&MasterToken, sizeof(MasterToken));
-
-		//	마스터 토큰 검사
-		if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, MasterToken, sizeof(MasterToken)))
-		{
-			//	마스터 토큰이 다를 경우 로그 남기고 끊음
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"[MatchServerNo : %d] MasterToken Not Same "), ServerNo);
-			Disconnect(pSession->iClientID);
-			return true;
-		}
-		//	ServerNo 중복 체크 - 중복일 경우 로그 남기로 끊음
-		//	중복이 아닐 경우 추가		
-		AcquireSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
-		if (_pMaster->_MatchServerNoMap.find(ServerNo) == _pMaster->_MatchServerNoMap.end()) 
-		{
-			// not found
-			Exist = false;
-			pSession->ServerNo = ServerNo;
-			_pMaster->_MatchServerNoMap.insert(make_pair(ServerNo, pSession));
-		}
-		else 
-		{
-			// found
-			Exist = true;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
-
-		if (true == Exist)
-		{
-			// 이미 매치서버 번호가 존재함 - 로그 남기고 끊기
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"ServerNo is Exist [MatchServerNo : %d]"), ServerNo);
-			Disconnect(pSession->iClientID);
-		}
-		else
-		{
-			InterlockedIncrement(&_iLoginClient);
-			pSession->bLoginPacketCheck = true;
-			//	매치서버 켜짐 수신 확인
-			CPacket *newPacket = CPacket::Alloc();
-			Type = en_PACKET_MAT_MAS_RES_SERVER_ON;
-			*newPacket << Type << ServerNo;
-			SendPacket(pSession->iClientID, newPacket);
-			newPacket->Free();
-		}
+		ReqMatchServerOn(pSession, pPacket);
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -702,81 +654,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-----------------------------------------------------------
 	else if (en_PACKET_MAT_MAS_REQ_GAME_ROOM == Type)
 	{
-		CLIENT * pClient = nullptr;
-		UINT64 ClientKey;
-		UINT64 AccountNo;
-		*pPacket >> ClientKey >> AccountNo;
-		std::map<UINT64, CLIENT*>::iterator map_iter;
-		//	이미 있는 키값인지 인지 검사
-		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		map_iter = _pMaster->_ClientKeyMap.find(ClientKey);
-		if (map_iter == _pMaster->_ClientKeyMap.end())
-		{
-			// not found
-			CLIENT * pNewClient = _pMaster->_ClientPool->Alloc();
-			pNewClient->ClientKey = ClientKey;
-			pNewClient->AccountNo = AccountNo;
-			pNewClient->MatchServerNo = pSession->ServerNo;
-			_pMaster->_ClientKeyMap.insert(make_pair(ClientKey, pNewClient));
-			pClient = pNewClient;
-		}
-		else
-		{
-			// found
-			pClient = (*map_iter).second;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-
-		//	방 리스트에서 사람이 남는 방을 하나 선택하여 보내준다.
-		std::list<BattleRoom*>::iterator list_iter;
-		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
-		for (list_iter = _pMaster->_RoomList.begin(); list_iter != _pMaster->_RoomList.end(); list_iter++)
-		{
-			if ((*list_iter)->MaxUser <= (*list_iter)->CurUser)
-				continue;
-			pClient->BattleRoomNo = (*list_iter)->RoomNo;
-			pClient->BattleServerNo = (*list_iter)->BattleServerNo;
-			RoomPlayerInfo RoomPlayer;
-			RoomPlayer.AccountNo = AccountNo;
-			RoomPlayer.ClientKey = ClientKey;
-			(*list_iter)->RoomPlayer.push_back(RoomPlayer);
-			if ((*list_iter)->MaxUser == InterlockedIncrement(&(*list_iter)->CurUser))
-				InterlockedDecrement(&_pMaster->_WaitRoomCount);
-			break;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
-
-		//	방이 존재하는지 체크
-		if (list_iter == _pMaster->_RoomList.end())
-		{
-			CPacket *newPacket = CPacket::Alloc();
-			Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
-			BYTE Status = 0;
-			*newPacket << Type << ClientKey << Status;
-			SendPacket(pSession->iClientID, newPacket);
-			newPacket->Free();
-
-			AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-			_pMaster->_ClientKeyMap.erase(ClientKey);
-			ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-			_pMaster->_ClientPool->Free(pClient);
-			return true;
-		}
-
-		//	데드락 위험성 있음 - 데드락 발생 시 구조 변경할 것
-		BattleServer* Info = _pMaster->FindBattleServerNo((*list_iter)->BattleServerNo);
-		CPacket *newPacket = CPacket::Alloc();
-		Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
-		BYTE Status = 1;
-		*newPacket << Type << ClientKey << Status << Info->ServerNo;
-		newPacket->PushData((char*)&Info->ServerIP, sizeof(Info->ServerIP));
-		*newPacket << Info->Port << (*list_iter)->RoomNo;
-		newPacket->PushData((char*)&Info->ConnectToken, sizeof(Info->ConnectToken));
-		newPacket->PushData((char*)&(*list_iter)->EnterToken, sizeof((*list_iter)->EnterToken));
-		newPacket->PushData((char*)&Info->ChatServerIP[0], sizeof(Info->ChatServerIP));
-		*newPacket << Info->ChatServerPort;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqGameRoom(pSession, pPacket);
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -784,17 +662,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-----------------------------------------------------------
 	else if (en_PACKET_MAT_MAS_REQ_ROOM_ENTER_SUCCESS == Type)
 	{
-		WORD BattleServerNo;
-		int RoomNo;
-		UINT64 ClientKey;
-		*pPacket >> BattleServerNo >> RoomNo >> ClientKey;
-		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
-		if (nullptr == pClient)
-			return false;
-		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		_pMaster->_ClientKeyMap.erase(ClientKey);
-		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		_pMaster->_ClientPool->Free(pClient);
+		ReqRoomEnter_Success(pSession, pPacket);
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -802,43 +670,7 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-----------------------------------------------------------
 	else if (en_PACKET_MAT_MAS_REQ_ROOM_ENTER_FAIL == Type)
 	{
-		InterlockedIncrement64(&_pMaster->_BattleRoomEnterFail);
-
-		UINT64 ClientKey;
-		*pPacket >> ClientKey;
-		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
-		if (nullptr == pClient)
-		{
-			return true;
-		}
-		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
-		for (auto i = _pMaster->_RoomList.begin(); i != _pMaster->_RoomList.end(); i++)
-		{
-			if ((*i)->RoomNo == pClient->BattleRoomNo && (*i)->BattleServerNo == pClient->BattleServerNo)
-			{
-				//	방에 아직 존재하는 유저인지 확인
-				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
-				{
-					if (iter->ClientKey == ClientKey)
-					{
-						if ((*i)->MaxUser - 1 == InterlockedDecrement(&(*i)->CurUser))
-							InterlockedIncrement(&_pMaster->_WaitRoomCount);
-						iter = (*i)->RoomPlayer.erase(iter);
-						break;
-					}
-					else
-						iter++;
-					continue;
-				}
-				break;
-			}
-			continue;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
-		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		_pMaster->_ClientKeyMap.erase(ClientKey);
-		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-		_pMaster->_ClientPool->Free(pClient);
+		ReqRoomEnter_Fail(pSession, pPacket);
 		return true;
 	}
 	return true;
@@ -871,4 +703,276 @@ unsigned __int64* CMatchMaster::GetIndex()
 void CMatchMaster::PutIndex(unsigned __int64 iIndex)
 {
 	_SessionStack.Push(&_pIndex[iIndex]);
+}
+
+void CMatchMaster::ReqMatchServerOn(LANSESSION * pSession, CPacket * pPacket)
+{
+	int ServerNo = NULL;
+	char MasterToken[32] = { 0, };
+	*pPacket >> ServerNo;
+	pPacket->PopData((char*)&MasterToken, sizeof(MasterToken));
+
+	if (false == MatchServerNoCheck(pSession, ServerNo))
+		return;
+
+	if (false == MasterTokenCheck(pSession, MasterToken))
+		return;
+	
+	InterlockedIncrement(&_iLoginClient);
+	pSession->bLoginPacketCheck = true;
+	//	매치서버 켜짐 수신 확인
+	CPacket *newPacket = CPacket::Alloc();
+	WORD Type = en_PACKET_MAT_MAS_RES_SERVER_ON;
+	*newPacket << Type << ServerNo;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+
+	return;
+}
+
+void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
+{
+	CLIENT * pClient = nullptr;
+	UINT64 ClientKey;
+	UINT64 AccountNo;
+	*pPacket >> ClientKey >> AccountNo;
+
+	//	이미 있는 키값인지 인지 검사
+	pClient = _pMaster->FindClientKey(ClientKey);
+	if (nullptr == pClient)
+	{
+		pClient = _pMaster->_ClientPool->Alloc();
+		pClient->ClientKey = ClientKey;
+		pClient->AccountNo = AccountNo;
+		pClient->MatchServerNo = pSession->ServerNo;
+		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientKeyMap.insert(make_pair(ClientKey, pClient));
+		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+	}
+
+	//	방 리스트에서 사람이 남는 방을 하나 선택하여 보내준다.
+	bool Full = false;
+	BattleRoom * pRoom = nullptr;
+	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	while (0 != _pMaster->_WaitRoomList.size())
+	{
+		pRoom = _pMaster->_WaitRoomList.front();
+		if (pRoom->MaxUser > pRoom->CurUser)
+		{
+			if (pRoom->MaxUser == InterlockedIncrement(&pRoom->CurUser))
+			{
+				_pMaster->_WaitRoomList.pop_front();
+				Full = true;
+			}
+			break;
+		}
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+
+	if (nullptr == pRoom)
+	{
+		//	방이 없음
+		CPacket *newPacket = CPacket::Alloc();
+		WORD Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
+		BYTE Status = 0;
+		*newPacket << Type << ClientKey << Status;
+		SendPacket(pSession->iClientID, newPacket);
+		newPacket->Free();
+
+		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientKeyMap.erase(ClientKey);
+		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientPool->Free(pClient);
+		return;
+	}
+
+	pClient->BattleRoomNo = pRoom->RoomNo;
+	pClient->BattleServerNo = pRoom->BattleServerNo;
+	RoomPlayerInfo RoomPlayer;
+	RoomPlayer.AccountNo = AccountNo;
+	RoomPlayer.ClientKey = ClientKey;
+	AcquireSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
+	pRoom->RoomPlayer.push_back(RoomPlayer);
+	ReleaseSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
+
+	if (true == Full)
+	{
+		AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+		_pMaster->_FullRoomList.push_back(pRoom);
+		ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	}
+
+	//	데드락 위험성 있음 - 데드락 발생 시 구조 변경할 것
+	BattleServer* Info = _pMaster->FindBattleServerNo(pRoom->BattleServerNo);
+	CPacket *newPacket = CPacket::Alloc();
+	WORD Type = en_PACKET_MAT_MAS_RES_GAME_ROOM;
+	BYTE Status = 1;
+	*newPacket << Type << ClientKey << Status << Info->ServerNo;
+	newPacket->PushData((char*)&Info->ServerIP, sizeof(Info->ServerIP));
+	*newPacket << Info->Port << pRoom->RoomNo;
+	newPacket->PushData((char*)&Info->ConnectToken, sizeof(Info->ConnectToken));
+	newPacket->PushData((char*)&pRoom->EnterToken, sizeof(pRoom->EnterToken));
+	newPacket->PushData((char*)&Info->ChatServerIP[0], sizeof(Info->ChatServerIP));
+	*newPacket << Info->ChatServerPort;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
+}
+
+void CMatchMaster::ReqRoomEnter_Success(LANSESSION * pSession, CPacket * pPacket)
+{
+	WORD BattleServerNo = NULL;
+	int RoomNo = NULL;
+	UINT64 ClientKey = NULL;
+	*pPacket >> BattleServerNo >> RoomNo >> ClientKey;
+	CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+	if (nullptr == pClient)
+		return;
+	AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+	_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
+	ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+	_pMaster->_ClientPool->Free(pClient);
+	return;
+}
+
+void CMatchMaster::ReqRoomEnter_Fail(LANSESSION * pSession, CPacket * pPacket)
+{
+	InterlockedIncrement64(&_pMaster->_BattleRoomEnterFail);
+
+	UINT64 ClientKey = NULL;
+	*pPacket >> ClientKey;
+	CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+	if (nullptr == pClient)
+	{
+		return;
+	}
+	//	클라이언트키Map에서 해당 키 삭제
+	AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+	_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
+	ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
+
+	if (true == WaitRoomRemove(pClient, ClientKey))
+		return;
+
+	FullRoomRemove(pClient, ClientKey);
+	return;
+}
+
+bool CMatchMaster::MasterTokenCheck(LANSESSION * pSession, char * pMasterToken)
+{
+	//	마스터 토큰 검사
+	if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, pMasterToken, sizeof(_pMaster->_Config.MASTERTOKEN)))
+	{
+		//	마스터 토큰이 다를 경우 로그 남기고 끊음
+		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"[MatchServerNo : %d] MasterToken Not Same "), pSession->ServerNo);
+		Disconnect(pSession->iClientID);
+		return false;
+	}
+	return true;
+}
+
+bool CMatchMaster::MatchServerNoCheck(LANSESSION * pSession, int ServerNo)
+{
+	bool Exist = false;
+	//	ServerNo 중복 체크 - 중복일 경우 로그 남기로 끊음
+	//	중복이 아닐 경우 추가		
+	AcquireSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
+	if (_pMaster->_MatchServerNoMap.find(ServerNo) == _pMaster->_MatchServerNoMap.end())
+	{
+		// not found
+		Exist = false;
+		pSession->ServerNo = ServerNo;
+		_pMaster->_MatchServerNoMap.insert(make_pair(ServerNo, pSession));
+	}
+	else
+	{
+		// found
+		Exist = true;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_MatchServerNo_lock);
+
+	if (true == Exist)
+	{
+		// 이미 매치서버 번호가 존재함 - 로그 남기고 끊기
+		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"ServerNo is Exist [MatchServerNo : %d]"), ServerNo);
+		Disconnect(pSession->iClientID);
+	}
+	return true;
+}
+
+bool CMatchMaster::WaitRoomRemove(CLIENT * pClient, UINT64 ClientKey)
+{
+	bool FindRoom = false;
+	//	WaitRoomList에서 해당 방이 있는지 찾고 있을경우 해당 유저 삭제
+	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	for (auto i = _pMaster->_WaitRoomList.begin(); i != _pMaster->_WaitRoomList.end(); i++)
+	{
+		if ((*i)->RoomNo == pClient->BattleRoomNo && (*i)->BattleServerNo == pClient->BattleServerNo)
+		{
+			//	방에 아직 존재하는 유저인지 확인
+			for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
+			{
+				if (iter->ClientKey == ClientKey)
+				{
+					InterlockedDecrement(&(*i)->CurUser);
+					iter = (*i)->RoomPlayer.erase(iter);
+					FindRoom = true;
+					_pMaster->_ClientPool->Free(pClient);
+					break;
+				}
+				else
+					iter++;
+				continue;
+			}
+			break;
+		}
+		continue;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+
+	if (true == FindRoom)
+		return true;
+	else
+		return false;
+}
+
+bool CMatchMaster::FullRoomRemove(CLIENT * pClient, UINT64 ClientKey)
+{
+	BattleRoom * pRoom = nullptr;
+	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	for (auto i = _pMaster->_FullRoomList.begin(); i != _pMaster->_FullRoomList.end();)
+	{
+		if ((*i)->RoomNo == pClient->BattleRoomNo && (*i)->BattleServerNo == pClient->BattleServerNo)
+		{
+			//	방에 아직 존재하는 유저인지 확인
+			for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
+			{
+				if (iter->ClientKey == ClientKey)
+				{
+					InterlockedDecrement(&(*i)->CurUser);
+					iter = (*i)->RoomPlayer.erase(iter);
+					_pMaster->_ClientPool->Free(pClient);
+					pRoom = (*i);
+					_pMaster->_FullRoomList.erase(i);
+					break;
+				}
+				else
+					iter++;
+				continue;
+			}
+			break;
+		}
+		i++;
+		continue;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+
+	if (nullptr != pRoom)
+	{
+		AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+		_pMaster->_WaitRoomList.push_front(pRoom);
+		ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	}
+	return true;
 }

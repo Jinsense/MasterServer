@@ -50,6 +50,16 @@ typedef struct st_ServerInfo
 	}
 }SERVERINFO;
 
+typedef struct st_CLIENTINFO
+{
+	UINT64 ClientKey;
+	UINT64 AccountNo;
+	WORD BattleServerNo;
+	int BattleRoomNo;
+	int MatchServerNo;
+
+}CLIENT;
+
 typedef struct st_RELEASE_COMPARE
 {
 	__int64	iIOCount;
@@ -101,7 +111,7 @@ typedef struct st_BattleRoom
 	int MaxUser;
 	long CurUser;
 	char EnterToken[32];
-	std::vector<RoomPlayerInfo> RoomPlayer;
+	std::list<RoomPlayerInfo> RoomPlayer;
 }BattleRoom;
 
 typedef struct st_BattleServer
