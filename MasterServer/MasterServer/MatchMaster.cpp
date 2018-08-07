@@ -788,9 +788,13 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		int RoomNo;
 		UINT64 ClientKey;
 		*pPacket >> BattleServerNo >> RoomNo >> ClientKey;
+		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+		if (nullptr == pClient)
+			return false;
 		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 		_pMaster->_ClientKeyMap.erase(ClientKey);
 		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientPool->Free(pClient);
 		return true;
 	}
 	//-----------------------------------------------------------
@@ -805,7 +809,6 @@ bool CMatchMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 		CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
 		if (nullptr == pClient)
 		{
-			InterlockedIncrement64(&_NotFindClientKey);
 			return true;
 		}
 		AcquireSRWLockExclusive(&_pMaster->_Room_lock);
