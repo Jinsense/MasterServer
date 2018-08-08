@@ -290,29 +290,23 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	_pMaster->_BattleServerMap.erase(pSession->ServerNo);
 	ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
 	
-	std::list<BattleRoom*>::iterator iter;
+	std::map<int, BattleRoom*>::iterator iter;
 	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-	int Num = _pMaster->_WaitRoomList.size();
-	if (0 != Num)
+	if (0 != _pMaster->_WaitRoomMap.size())
 	{
-		iter = _pMaster->_WaitRoomList.begin();
-		for (int Size = 0; Size < Num; Size++)
+		for (iter = _pMaster->_WaitRoomMap.begin(); iter != _pMaster->_WaitRoomMap.end();)
 		{
-			if (pSession->ServerNo == (*iter)->BattleServerNo)
+			if (pSession->ServerNo == (*iter).second->BattleServerNo)
 			{
 				//	배틀 서버가 끊어졌을 때 해당 서버에 해당하는 방을 삭제
-				BattleRoom * pRoom = *iter;
+				BattleRoom * pRoom = (*iter).second;
 				for (auto i = pRoom->RoomPlayer.begin(); i != pRoom->RoomPlayer.end();)
 				{
-					CLIENT * pClient = _pMaster->FindClientKey((*i).ClientKey);
-					if (nullptr != pClient)
-					{
-						_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-						_pMaster->_ClientPool->Free(pClient);
-					}
-					i++;
+					_pMaster->_ClientKeyMap.erase((*i).ClientKey);
+					_pMaster->_ClientPool->Free((*i).pClient);
+					i = pRoom->RoomPlayer.erase(i);
 				}
-				iter = _pMaster->_WaitRoomList.erase(iter);
+				iter = _pMaster->_WaitRoomMap.erase(iter);
 				delete pRoom;
 			}
 			else
@@ -322,27 +316,21 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 
 	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
-	Num = _pMaster->_FullRoomList.size();
-	if (0 != Num)
+	if (0 != _pMaster->_FullRoomMap.size())
 	{
-		iter = _pMaster->_FullRoomList.begin();
-		for (iter = _pMaster->_FullRoomList.begin(); iter != _pMaster->_FullRoomList.end();)
+		for (iter = _pMaster->_FullRoomMap.begin(); iter != _pMaster->_FullRoomMap.end();)
 		{
-			if (pSession->ServerNo == (*iter)->BattleServerNo)
+			if (pSession->ServerNo == (*iter).second->BattleServerNo)
 			{
 				//	배틀 서버가 끊어졌을 때 해당 서버에 해당하는 방을 삭제
-				BattleRoom * pRoom = *iter;
+				BattleRoom * pRoom = (*iter).second;
 				for (auto i = pRoom->RoomPlayer.begin(); i != pRoom->RoomPlayer.end();)
 				{
-					CLIENT * pClient = _pMaster->FindClientKey((*i).ClientKey);
-					if (nullptr != pClient)
-					{
-						_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-						_pMaster->_ClientPool->Free(pClient);
-					}
-					i++;
+					_pMaster->_ClientKeyMap.erase((*i).ClientKey);
+					_pMaster->_ClientPool->Free((*i).pClient);
+					i = pRoom->RoomPlayer.erase(i);
 				}
-				iter = _pMaster->_WaitRoomList.erase(iter);
+				iter = _pMaster->_FullRoomMap.erase(iter);
 				delete pRoom;
 			}
 			else
@@ -709,44 +697,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-------------------------------------------------------------
 	if (Type == en_PACKET_BAT_MAS_REQ_SERVER_ON)
 	{
-		BattleServer * pBattleServer = new BattleServer;
-		pPacket->PopData((char*)&pBattleServer->ServerIP, sizeof(pBattleServer->ServerIP));
-		*pPacket >> pBattleServer->Port;
-		pPacket->PopData((char*)&pBattleServer->ConnectToken, sizeof(pBattleServer->ConnectToken));
-		pPacket->PopData((char*)&pBattleServer->MasterToken, sizeof(pBattleServer->MasterToken));
-		pPacket->PopData((char*)&pBattleServer->ChatServerIP, sizeof(pBattleServer->ChatServerIP));
-		*pPacket >> pBattleServer->ChatServerPort;
-
-
-		//	마스터 토큰 검사
-		if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, pBattleServer->MasterToken, sizeof(_pMaster->_Config.MASTERTOKEN)))
-		{
-			//	마스터 토큰이 다를 경우 로그 남기고 끊음
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"MasterToken Not Same [MatchServerNo : %s]"), pBattleServer->ServerIP);
-			Disconnect(pSession->iClientID);
-			delete pBattleServer;
-			return true;
-		}
-		//	배틀서버 번호 할당
-		pBattleServer->ServerNo = InterlockedIncrement(&_pMaster->_BattleServerNo);
-		pSession->ServerNo = pBattleServer->ServerNo;
-		//	배틀서버 맵에 추가
-		AcquireSRWLockExclusive(&_pMaster->_BattleServer_lock);
-		_pMaster->_BattleServerMap.insert(make_pair(pBattleServer->ServerNo, pBattleServer));
-		ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
-		//-------------------------------------------------------------
-		//	배틀서버에게 서버 켜짐 응답
-		//	Type - en_PACKET_BAT_MAS_RES_SERVER_ON
-		//	int  - BattleServerNo ( 마스터 서버가 부여 )
-		//-------------------------------------------------------------
-		InterlockedIncrement(&_iLoginClient);
-		pSession->bLoginPacketCheck = true;
-		int ServerNo = pBattleServer->ServerNo;
-		CPacket *newPacket = CPacket::Alloc();
-		Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
-		*newPacket << Type << ServerNo;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqBattleServerOn(pSession, pPacket);
 		return true;
 	}
 	//-------------------------------------------------------------
@@ -757,26 +708,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-------------------------------------------------------------
 	else if (Type == en_PACKET_BAT_MAS_REQ_CONNECT_TOKEN)
 	{
-		UINT ReqSequence;
-		BattleServer * pBattleServer = FindBattleServerNo(pSession->ServerNo);
-		if (nullptr == pBattleServer)
-		{
-			_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"BattleServerNo Not Exist [BattleServerNo : %d]"), pSession->ServerNo);
-			Disconnect(pSession->iClientID);
-			return true;
-		}
-		pPacket->PopData((char*)&pBattleServer->ConnectToken, sizeof(pBattleServer->ConnectToken));
-		*pPacket >> ReqSequence;
-		ReqSequence++;
-		//-------------------------------------------------------------
-		//	배틀서버에게 재발행 수신 확인
-		//	Type - en_PACKET_BAT_MAS_RES_CONNECT_TOKEN
-		//-------------------------------------------------------------
-		Type = en_PACKET_BAT_MAS_RES_CONNECT_TOKEN;
-		CPacket *newPacket = CPacket::Alloc();
-		*newPacket << Type << ReqSequence;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqNewConnectToken(pSession, pPacket);
 		return true;
 	}
 	//-------------------------------------------------------------
@@ -790,29 +722,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-------------------------------------------------------------
 	else if (Type == en_PACKET_BAT_MAS_REQ_CREATED_ROOM)
 	{
-		BattleRoom *pBattleRoom = new BattleRoom;
-		UINT ReqSequence;
-		pBattleRoom->CurUser = 0;
-		pBattleRoom->RoomPlayer.clear();
-		*pPacket >> pBattleRoom->BattleServerNo >> pBattleRoom->RoomNo >> pBattleRoom->MaxUser;
-		pPacket->PopData((char*)&pBattleRoom->EnterToken, sizeof(pBattleRoom->EnterToken));
-		*pPacket >> ReqSequence;
-
-		AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-		_pMaster->_WaitRoomList.push_back(pBattleRoom);
-		ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-		ReqSequence++;
-		//-------------------------------------------------------------
-		//	배틀서버에게 신규 대기 방 생성 수신 응답
-		//	Type	- en_PACKET_BAT_MAS_RES_CREATED_ROOM
-		//	int		- RoomNo
-		//	UINT	- ReqSequence
-		//-------------------------------------------------------------
-		Type = en_PACKET_BAT_MAS_RES_CREATED_ROOM;
-		CPacket *newPacket = CPacket::Alloc();
-		*newPacket << Type << pBattleRoom->RoomNo << ReqSequence;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqNewCreateRoom(pSession, pPacket);
 		return true;
 	}
 	//-------------------------------------------------------------
@@ -823,75 +733,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-------------------------------------------------------------
 	else if (Type == en_PACKET_BAT_MAS_REQ_CLOSED_ROOM)
 	{
-		bool FindRoom = false;
-		int RoomNo = NULL;
-		UINT ReqSequence = NULL;
-		*pPacket >> RoomNo >> ReqSequence;
-		AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
-		for (auto i = _pMaster->_FullRoomList.begin(); i != _pMaster->_FullRoomList.end();)
-		{
-			if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
-			{
-				FindRoom = true;
-				BattleRoom * pRoom = *i;
-				for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
-				{
-					CLIENT * pClient = _pMaster->FindClientKey((*iter).ClientKey);
-					if (nullptr != pClient)
-					{
-						_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-						_pMaster->_ClientPool->Free(pClient);
-					}
-					iter++;
-				}
-				i = _pMaster->_FullRoomList.erase(i);
-				delete pRoom;
-				break;
-			}
-			else 
-				i++;
-			continue;
-		}		
-		ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
-
-		if (false == FindRoom)
-		{
-			AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-			for (auto i = _pMaster->_WaitRoomList.begin(); i != _pMaster->_WaitRoomList.end();)
-			{
-				if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
-				{
-					BattleRoom * pRoom = *i;
-					for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
-					{
-						CLIENT * pClient = _pMaster->FindClientKey((*iter).ClientKey);
-						if (nullptr != pClient)
-						{
-							_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-							_pMaster->_ClientPool->Free(pClient);
-						}
-						iter++;
-					}
-					i = _pMaster->_WaitRoomList.erase(i);
-					delete pRoom;
-					break;
-				}
-				else
-					i++;
-				continue;
-			}
-			ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-		}
-		ReqSequence++;
-		//-------------------------------------------------------------
-		//	배틀서버에게 방 닫힘 수신확인
-		//	Type - en_PACKET_BAT_MAS_RES_CLOSED_ROOM
-		//-------------------------------------------------------------
-		Type = en_PACKET_BAT_MAS_RES_CLOSED_ROOM;
-		CPacket *newPacket = CPacket::Alloc();
-		*newPacket << Type << RoomNo << ReqSequence;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqClosedRoom(pSession, pPacket);
 		return true;
 	}
 	//-------------------------------------------------------------
@@ -903,99 +745,7 @@ bool CBattleMaster::OnRecv(LANSESSION *pSession, CPacket *pPacket)
 	//-------------------------------------------------------------
 	else if (Type == en_PACKET_BAT_MAS_REQ_LEFT_USER)
 	{
-		bool FindUser = false;
-		int RoomNo = NULL;
-		INT64 AccountNo = NULL;
-		UINT ReqSequence = NULL;
-		*pPacket >> RoomNo >> AccountNo >> ReqSequence;
-		AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-		for (auto i = _pMaster->_WaitRoomList.begin(); i != _pMaster->_WaitRoomList.end(); i++)
-		{
-			if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
-			{
-				//	내부에 AccountNo를 비교하여 실제 방에 아직 존재하는 유저인지 확인 후 차감 할 것
-				//	MatchMaster를 통해 2번 차감 될 수 있음
-				for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
-				{
-					if (iter->AccountNo == AccountNo)
-					{
-						FindUser = true;
-						InterlockedDecrement(&(*i)->CurUser);
-						CLIENT* pClient = _pMaster->FindClientKey((*iter).ClientKey);
-						if (nullptr != pClient)
-						{
-							AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-							_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-							ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-							_pMaster->_ClientPool->Free(pClient);
-						}
-						iter = (*i)->RoomPlayer.erase(iter);
-						break;
-					}
-					else
-						iter++;
-					continue;
-				}
-				break;
-			}
-			continue;
-		}
-		ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-
-		if (false == FindUser)
-		{
-			BattleRoom * pRoom = nullptr;
-			AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
-			for (auto i = _pMaster->_FullRoomList.begin(); i != _pMaster->_FullRoomList.end(); i++)
-			{
-				if ((*i)->RoomNo == RoomNo && (*i)->BattleServerNo == pSession->ServerNo)
-				{
-					//	내부에 AccountNo를 비교하여 실제 방에 아직 존재하는 유저인지 확인 후 차감 할 것
-					//	MatchMaster를 통해 2번 차감 될 수 있음
-					for (auto iter = (*i)->RoomPlayer.begin(); iter != (*i)->RoomPlayer.end();)
-					{
-						if (iter->AccountNo == AccountNo)
-						{
-							pRoom = (*i);
-							InterlockedDecrement(&(*i)->CurUser);							
-							CLIENT* pClient = _pMaster->FindClientKey((*iter).ClientKey);
-							if (nullptr != pClient)
-							{
-								AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
-								_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
-								ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-								_pMaster->_ClientPool->Free(pClient);
-							}
-							iter = (*i)->RoomPlayer.erase(iter);
-							i = _pMaster->_FullRoomList.erase(i);
-							break;
-						}
-						else
-							iter++;
-						continue;
-					}
-					break;
-				}
-				continue;
-			}
-			ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
-			if (nullptr != pRoom)
-			{
-				AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-				_pMaster->_WaitRoomList.push_front(pRoom);
-				ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-			}
-		}
-		ReqSequence++;
-		//-------------------------------------------------------------
-		//	배틀서버에게 방 유저 나감 수신 확인
-		//	Type - en_PACKET_BAT_MAS_RES_LEFT_USER
-		//-------------------------------------------------------------
-		Type = en_PACKET_BAT_MAS_RES_LEFT_USER;
-		CPacket *newPacket = CPacket::Alloc();
-		*newPacket << Type << RoomNo << ReqSequence;
-		SendPacket(pSession->iClientID, newPacket);
-		newPacket->Free();
+		ReqLeftUser(pSession, pPacket);
 		return true;
 	}
 	return true;
@@ -1037,4 +787,231 @@ BattleServer* CBattleMaster::FindBattleServerNo(int ServerNo)
 	pBattleServer = _pMaster->_BattleServerMap.find(ServerNo)->second;
 	ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
 	return pBattleServer;
+}
+
+void CBattleMaster::ReqBattleServerOn(LANSESSION * pSession, CPacket * pPacket)
+{
+	BattleServer * pBattleServer = new BattleServer;
+	pPacket->PopData((char*)&pBattleServer->ServerIP, sizeof(pBattleServer->ServerIP));
+	*pPacket >> pBattleServer->Port;
+	pPacket->PopData((char*)&pBattleServer->ConnectToken, sizeof(pBattleServer->ConnectToken));
+	pPacket->PopData((char*)&pBattleServer->MasterToken, sizeof(pBattleServer->MasterToken));
+	pPacket->PopData((char*)&pBattleServer->ChatServerIP, sizeof(pBattleServer->ChatServerIP));
+	*pPacket >> pBattleServer->ChatServerPort;
+	
+	//	마스터 토큰 검사
+	if (0 != strncmp(_pMaster->_Config.MASTERTOKEN, pBattleServer->MasterToken, sizeof(_pMaster->_Config.MASTERTOKEN)))
+	{
+		//	마스터 토큰이 다를 경우 로그 남기고 끊음
+		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"MasterToken Not Same [MatchServerNo : %s]"), pBattleServer->ServerIP);
+		Disconnect(pSession->iClientID);
+		delete pBattleServer;
+		return;
+	}
+	//	배틀서버 번호 할당
+	pBattleServer->ServerNo = InterlockedIncrement(&_pMaster->_BattleServerNo);
+	pSession->ServerNo = pBattleServer->ServerNo;
+	//	배틀서버 맵에 추가
+	AcquireSRWLockExclusive(&_pMaster->_BattleServer_lock);
+	_pMaster->_BattleServerMap.insert(make_pair(pBattleServer->ServerNo, pBattleServer));
+	ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
+	//-------------------------------------------------------------
+	//	배틀서버에게 서버 켜짐 응답
+	//	Type - en_PACKET_BAT_MAS_RES_SERVER_ON
+	//	int  - BattleServerNo ( 마스터 서버가 부여 )
+	//-------------------------------------------------------------
+	InterlockedIncrement(&_iLoginClient);
+	pSession->bLoginPacketCheck = true;
+	int ServerNo = pBattleServer->ServerNo;
+	CPacket *newPacket = CPacket::Alloc();
+	WORD Type = en_PACKET_BAT_MAS_RES_SERVER_ON;
+	*newPacket << Type << ServerNo;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
+}
+
+void CBattleMaster::ReqNewConnectToken(LANSESSION * pSession, CPacket * pPacket)
+{
+	UINT ReqSequence;
+	BattleServer * pBattleServer = FindBattleServerNo(pSession->ServerNo);
+	if (nullptr == pBattleServer)
+	{
+		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"Error"), LOG_SYSTEM, const_cast<WCHAR*>(L"BattleServerNo Not Exist [BattleServerNo : %d]"), pSession->ServerNo);
+		Disconnect(pSession->iClientID);
+		return;
+	}
+	pPacket->PopData((char*)&pBattleServer->ConnectToken, sizeof(pBattleServer->ConnectToken));
+	*pPacket >> ReqSequence;
+	ReqSequence++;
+	//-------------------------------------------------------------
+	//	배틀서버에게 재발행 수신 확인
+	//	Type - en_PACKET_BAT_MAS_RES_CONNECT_TOKEN
+	//-------------------------------------------------------------
+	WORD Type = en_PACKET_BAT_MAS_RES_CONNECT_TOKEN;
+	CPacket *newPacket = CPacket::Alloc();
+	*newPacket << Type << ReqSequence;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
+}
+
+void CBattleMaster::ReqNewCreateRoom(LANSESSION * pSession, CPacket * pPacket)
+{
+	BattleRoom *pBattleRoom = new BattleRoom;
+	UINT ReqSequence;
+	pBattleRoom->CurUser = 0;
+	pBattleRoom->RoomPlayer.clear();
+	*pPacket >> pBattleRoom->BattleServerNo >> pBattleRoom->RoomNo >> pBattleRoom->MaxUser;
+	pPacket->PopData((char*)&pBattleRoom->EnterToken, sizeof(pBattleRoom->EnterToken));
+	*pPacket >> ReqSequence;
+
+	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	_pMaster->_WaitRoomMap.insert(make_pair(pBattleRoom->RoomNo, pBattleRoom));
+	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	ReqSequence++;
+	//-------------------------------------------------------------
+	//	배틀서버에게 신규 대기 방 생성 수신 응답
+	//	Type	- en_PACKET_BAT_MAS_RES_CREATED_ROOM
+	//	int		- RoomNo
+	//	UINT	- ReqSequence
+	//-------------------------------------------------------------
+	WORD Type = en_PACKET_BAT_MAS_RES_CREATED_ROOM;
+	CPacket *newPacket = CPacket::Alloc();
+	*newPacket << Type << pBattleRoom->RoomNo << ReqSequence;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
+}
+
+void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
+{
+	int RoomNo = NULL;
+	UINT ReqSequence = NULL;
+	*pPacket >> RoomNo >> ReqSequence;
+	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	for (auto i = _pMaster->_FullRoomMap.begin(); i != _pMaster->_FullRoomMap.end();)
+	{
+		if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
+		{
+			BattleRoom * pRoom = (*i).second;
+			for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
+			{
+				_pMaster->_ClientKeyMap.erase((*iter).ClientKey);
+				_pMaster->_ClientPool->Free((*iter).pClient);
+				iter = pRoom->RoomPlayer.erase(iter);
+			}
+			i = _pMaster->_FullRoomMap.erase(i);
+			delete pRoom;
+			break;
+		}
+		else
+			i++;
+		continue;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	ReqSequence++;
+	//-------------------------------------------------------------
+	//	배틀서버에게 방 닫힘 수신확인
+	//	Type - en_PACKET_BAT_MAS_RES_CLOSED_ROOM
+	//-------------------------------------------------------------
+	WORD Type = en_PACKET_BAT_MAS_RES_CLOSED_ROOM;
+	CPacket *newPacket = CPacket::Alloc();
+	*newPacket << Type << RoomNo << ReqSequence;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
+}
+
+void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
+{
+	bool FindUser = false;
+	int RoomNo = NULL;
+	INT64 AccountNo = NULL;
+	UINT64 ClientKey = NULL;
+	UINT ReqSequence = NULL;
+	*pPacket >> RoomNo >> AccountNo >> ReqSequence;
+	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	for (auto i = _pMaster->_WaitRoomMap.begin(); i != _pMaster->_WaitRoomMap.end(); i++)
+	{
+		if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
+		{
+			//	내부에 AccountNo를 비교하여 실제 방에 아직 존재하는 유저인지 확인 후 차감 할 것
+			//	MatchMaster를 통해 2번 차감 될 수 있음
+			for (auto iter = (*i).second->RoomPlayer.begin(); iter != (*i).second->RoomPlayer.end();)
+			{
+				if (iter->AccountNo == AccountNo)
+				{
+					FindUser = true;
+					InterlockedDecrement(&(*i).second->CurUser);
+					ClientKey = (*iter).ClientKey;
+					_pMaster->_ClientPool->Free((*iter).pClient);
+					iter = (*i).second->RoomPlayer.erase(iter);
+					break;
+				}
+				else
+					iter++;
+				continue;
+			}
+			break;
+		}
+		continue;
+	}
+	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+
+	if (false == FindUser)
+	{
+		BattleRoom * pRoom = nullptr;
+		AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+		for (auto i = _pMaster->_FullRoomMap.begin(); i != _pMaster->_FullRoomMap.end(); i++)
+		{
+			if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
+			{
+				//	내부에 AccountNo를 비교하여 실제 방에 아직 존재하는 유저인지 확인 후 차감 할 것
+				//	MatchMaster를 통해 2번 차감 될 수 있음
+				for (auto iter = (*i).second->RoomPlayer.begin(); iter != (*i).second->RoomPlayer.end();)
+				{
+					if (iter->AccountNo == AccountNo)
+					{
+						pRoom = (*i).second;
+						InterlockedDecrement(&(*i).second->CurUser);
+						ClientKey = (*iter).ClientKey;
+						_pMaster->_ClientPool->Free((*iter).pClient);
+						iter = (*i).second->RoomPlayer.erase(iter);
+						i = _pMaster->_FullRoomMap.erase(i);
+						break;
+					}
+					else
+						iter++;
+					continue;
+				}
+				break;
+			}
+			continue;
+		}
+		ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);		
+		if (nullptr != pRoom)
+		{
+			AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+			_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
+			ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+		}
+	}
+	if (NULL != ClientKey)
+	{
+		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+		_pMaster->_ClientKeyMap.erase(ClientKey);
+		ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+	}
+	ReqSequence++;
+	//-------------------------------------------------------------
+	//	배틀서버에게 방 유저 나감 수신 확인
+	//	Type - en_PACKET_BAT_MAS_RES_LEFT_USER
+	//-------------------------------------------------------------
+	WORD Type = en_PACKET_BAT_MAS_RES_LEFT_USER;
+	CPacket *newPacket = CPacket::Alloc();
+	*newPacket << Type << RoomNo << ReqSequence;
+	SendPacket(pSession->iClientID, newPacket);
+	newPacket->Free();
+	return;
 }

@@ -17,7 +17,6 @@ CMasterServer::CMasterServer()
 	InitializeSRWLock(&_WaitRoom_lock);
 	InitializeSRWLock(&_FullRoom_lock);
 	InitializeSRWLock(&_RoomPlayer_lock);
-
 	
 	_ClientPool = new CMemoryPool<CLIENT>();
 
@@ -130,8 +129,8 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	MatchMaking Wait Client		:	%d\n\n", _MasterServer_Stay_Client);
 			wprintf(L"	Battle Server Connect		:	%d\n", _pBattleMaster->_iConnectClient);
 			wprintf(L"	Battle Server Login		:	%d\n", _pBattleMaster->_iLoginClient);
-			wprintf(L"	Battle Server WaitRoomList	:	%d\n", _WaitRoomList.size());
-			wprintf(L"	Battle Server FullRoomList 	:	%d\n\n", _FullRoomList.size());
+			wprintf(L"	Battle Server WaitRoomMap	:	%d\n", _WaitRoomMap.size());
+			wprintf(L"	Battle Server FullRoomMap	:	%d\n\n", _FullRoomMap.size());
 		}
 	}
 	delete t;

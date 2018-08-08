@@ -91,8 +91,8 @@ public:
 	//-----------------------------------------------------------
 	// 배틀서버 방 관리
 	//-----------------------------------------------------------
-	std::list<BattleRoom*>	_WaitRoomList;
-	std::list<BattleRoom*>	_FullRoomList;
+	std::map<int, BattleRoom*> _WaitRoomMap;
+	std::map<int, BattleRoom*> _FullRoomMap;
 	SRWLOCK		_WaitRoom_lock;
 	SRWLOCK		_FullRoom_lock;
 	SRWLOCK		_RoomPlayer_lock;

@@ -75,7 +75,11 @@ private:
 	//-------------------------------------------------------------
 	//	패킷 처리
 	//-------------------------------------------------------------
-
+	void	ReqBattleServerOn(LANSESSION * pSession, CPacket * pPacket);
+	void	ReqNewConnectToken(LANSESSION * pSession, CPacket * pPacket);
+	void	ReqNewCreateRoom(LANSESSION * pSession, CPacket * pPacket);
+	void	ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket);
+	void	ReqLeftUser(LANSESSION * pSession, CPacket * pPacket);
 	//-------------------------------------------------------------
 	//	사용자 함수
 	//-------------------------------------------------------------

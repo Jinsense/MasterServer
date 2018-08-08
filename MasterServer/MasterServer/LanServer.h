@@ -3,7 +3,6 @@
 
 #include <map>
 #include <list>
-#include <vector>
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "winmm.lib")
@@ -102,6 +101,7 @@ typedef struct st_RoomPlayerInfo
 {
 	UINT64 AccountNo;
 	UINT64 ClientKey;
+	CLIENT * pClient;
 }RoomPlayerInfo;
 
 typedef struct st_BattleRoom
