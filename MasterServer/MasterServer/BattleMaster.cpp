@@ -291,7 +291,8 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 	ReleaseSRWLockExclusive(&_pMaster->_BattleServer_lock);
 	
 	std::map<int, BattleRoom*>::iterator iter;
-	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 	if (0 != _pMaster->_WaitRoomMap.size())
 	{
 		for (iter = _pMaster->_WaitRoomMap.begin(); iter != _pMaster->_WaitRoomMap.end();)
@@ -302,9 +303,15 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 				BattleRoom * pRoom = (*iter).second;
 				for (auto i = pRoom->RoomPlayer.begin(); i != pRoom->RoomPlayer.end();)
 				{
+					AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 					_pMaster->_ClientKeyMap.erase((*i).ClientKey);
+					ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
 					_pMaster->_ClientPool->Free((*i).pClient);
+
+					AcquireSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 					i = pRoom->RoomPlayer.erase(i);
+					ReleaseSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 				}
 				iter = _pMaster->_WaitRoomMap.erase(iter);
 				delete pRoom;
@@ -313,9 +320,11 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 				iter++;
 		}
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 
-	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
 	if (0 != _pMaster->_FullRoomMap.size())
 	{
 		for (iter = _pMaster->_FullRoomMap.begin(); iter != _pMaster->_FullRoomMap.end();)
@@ -326,9 +335,15 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 				BattleRoom * pRoom = (*iter).second;
 				for (auto i = pRoom->RoomPlayer.begin(); i != pRoom->RoomPlayer.end();)
 				{
+					AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 					_pMaster->_ClientKeyMap.erase((*i).ClientKey);
+					ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
 					_pMaster->_ClientPool->Free((*i).pClient);
+
+					AcquireSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 					i = pRoom->RoomPlayer.erase(i);
+					ReleaseSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 				}
 				iter = _pMaster->_FullRoomMap.erase(iter);
 				delete pRoom;
@@ -337,7 +352,8 @@ bool CBattleMaster::ClientRelease(LANSESSION *pSession)
 				iter++;
 		}
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
 
 	PutIndex(iIndex);
 
@@ -866,9 +882,11 @@ void CBattleMaster::ReqNewCreateRoom(LANSESSION * pSession, CPacket * pPacket)
 	pPacket->PopData((char*)&pBattleRoom->EnterToken, sizeof(pBattleRoom->EnterToken));
 	*pPacket >> ReqSequence;
 
-	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 	_pMaster->_WaitRoomMap.insert(make_pair(pBattleRoom->RoomNo, pBattleRoom));
-	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 	ReqSequence++;
 	//-------------------------------------------------------------
 	//	배틀서버에게 신규 대기 방 생성 수신 응답
@@ -889,7 +907,8 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 	int RoomNo = NULL;
 	UINT ReqSequence = NULL;
 	*pPacket >> RoomNo >> ReqSequence;
-	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
 	for (auto i = _pMaster->_FullRoomMap.begin(); i != _pMaster->_FullRoomMap.end();)
 	{
 		if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
@@ -897,9 +916,15 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 			BattleRoom * pRoom = (*i).second;
 			for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
 			{
+				AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 				_pMaster->_ClientKeyMap.erase((*iter).ClientKey);
+				ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
 				_pMaster->_ClientPool->Free((*iter).pClient);
+
+				AcquireSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 				iter = pRoom->RoomPlayer.erase(iter);
+				ReleaseSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
 			}
 			i = _pMaster->_FullRoomMap.erase(i);
 			delete pRoom;
@@ -909,7 +934,8 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 			i++;
 		continue;
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
 	ReqSequence++;
 	//-------------------------------------------------------------
 	//	배틀서버에게 방 닫힘 수신확인
@@ -931,7 +957,8 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 	UINT64 ClientKey = NULL;
 	UINT ReqSequence = NULL;
 	*pPacket >> RoomNo >> AccountNo >> ReqSequence;
-	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 	for (auto i = _pMaster->_WaitRoomMap.begin(); i != _pMaster->_WaitRoomMap.end(); i++)
 	{
 		if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
@@ -957,12 +984,13 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 		}
 		continue;
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	
 
 	if (false == FindUser)
 	{
 		BattleRoom * pRoom = nullptr;
-		AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+//		AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
 		for (auto i = _pMaster->_FullRoomMap.begin(); i != _pMaster->_FullRoomMap.end(); i++)
 		{
 			if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
@@ -979,6 +1007,10 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 						_pMaster->_ClientPool->Free((*iter).pClient);
 						iter = (*i).second->RoomPlayer.erase(iter);
 						i = _pMaster->_FullRoomMap.erase(i);
+
+//						AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+						_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
+//						ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 						break;
 					}
 					else
@@ -989,14 +1021,16 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 			}
 			continue;
 		}
-		ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);		
+//		ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);		
 		if (nullptr != pRoom)
 		{
-			AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+			/*AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 			_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
-			ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+			ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);*/
 		}
 	}
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+
 	if (NULL != ClientKey)
 	{
 		AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);

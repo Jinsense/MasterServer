@@ -14,8 +14,9 @@ CMasterServer::CMasterServer()
 	InitializeSRWLock(&_MatchServerNo_lock);
 	InitializeSRWLock(&_ClientKey_lock);
 	InitializeSRWLock(&_BattleServer_lock);
-	InitializeSRWLock(&_WaitRoom_lock);
-	InitializeSRWLock(&_FullRoom_lock);
+	InitializeSRWLock(&_Room_lock);
+//	InitializeSRWLock(&_WaitRoom_lock);
+//	InitializeSRWLock(&_FullRoom_lock);
 	InitializeSRWLock(&_RoomPlayer_lock);
 	
 	_ClientPool = new CMemoryPool<CLIENT>();

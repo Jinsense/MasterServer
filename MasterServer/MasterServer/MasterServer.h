@@ -93,8 +93,9 @@ public:
 	//-----------------------------------------------------------
 	std::map<int, BattleRoom*> _WaitRoomMap;
 	std::map<int, BattleRoom*> _FullRoomMap;
-	SRWLOCK		_WaitRoom_lock;
-	SRWLOCK		_FullRoom_lock;
+	SRWLOCK		_Room_lock;
+//	SRWLOCK		_WaitRoom_lock;
+//	SRWLOCK		_FullRoom_lock;
 	SRWLOCK		_RoomPlayer_lock;
 	//-----------------------------------------------------------
 	// 모니터링 변수

@@ -753,22 +753,23 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 	//	방 Map에서 사람이 남는 방을 하나 선택하여 보내준다.
 	BattleRoom * pRoom = nullptr;
 	std::map<int, BattleRoom*>::iterator iter;
-	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 	while (0 != _pMaster->_WaitRoomMap.size())
 	{
 		iter = _pMaster->_WaitRoomMap.begin();
 		pRoom = (*iter).second;
 		if ((*iter).second->MaxUser == InterlockedIncrement(&(*iter).second->CurUser))
 		{
-			AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
-			_pMaster->_FullRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
-			ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
 			iter = _pMaster->_WaitRoomMap.erase(iter);
+//			AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+			_pMaster->_FullRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
+//			ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
 		}
 		break;
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
-
+//	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 	if (nullptr == pRoom)
 	{
 		//	방이 없음
@@ -785,6 +786,10 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 		_pMaster->_ClientPool->Free(pClient);
 		return;
 	}
+
+	/*AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	_pMaster->_FullRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
+	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);*/
 
 	pClient->BattleRoomNo = pRoom->RoomNo;
 	pClient->BattleServerNo = pRoom->BattleServerNo;
@@ -819,13 +824,13 @@ void CMatchMaster::ReqRoomEnter_Success(LANSESSION * pSession, CPacket * pPacket
 	int RoomNo = NULL;
 	UINT64 ClientKey = NULL;
 	*pPacket >> BattleServerNo >> RoomNo >> ClientKey;
-	CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
+	/*CLIENT* pClient = _pMaster->FindClientKey(ClientKey);
 	if (nullptr == pClient)
 		return;
 	AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
 	_pMaster->_ClientKeyMap.erase(pClient->ClientKey);
 	ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
-	_pMaster->_ClientPool->Free(pClient);
+	_pMaster->_ClientPool->Free(pClient);*/
 	return;
 }
 
@@ -899,7 +904,8 @@ bool CMatchMaster::WaitRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 {
 	bool FindRoom = false;
 	//	WaitRoomList에서 해당 방이 있는지 찾고 있을경우 해당 유저 삭제
-	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 	for (auto i = _pMaster->_WaitRoomMap.begin(); i != _pMaster->_WaitRoomMap.end(); i++)
 	{
 		if ((*i).first == pClient->BattleRoomNo && (*i).second->BattleServerNo == pClient->BattleServerNo)
@@ -923,7 +929,8 @@ bool CMatchMaster::WaitRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 		}
 		continue;
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 
 	if (true == FindRoom)
 		return true;
@@ -934,7 +941,8 @@ bool CMatchMaster::WaitRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 bool CMatchMaster::FullRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 {
 	BattleRoom * pRoom = nullptr;
-	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
+//	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
 	for (auto i = _pMaster->_FullRoomMap.begin(); i != _pMaster->_FullRoomMap.end();)
 	{
 		if ((*i).first == pClient->BattleRoomNo && (*i).second->BattleServerNo == pClient->BattleServerNo)
@@ -949,9 +957,9 @@ bool CMatchMaster::FullRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 					_pMaster->_ClientPool->Free(pClient);
 					pRoom = (*i).second;
 					_pMaster->_FullRoomMap.erase(i);
-					AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+//					AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 					_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
-					ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+//					ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 					break;
 				}
 				else
@@ -963,6 +971,7 @@ bool CMatchMaster::FullRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 		i++;
 		continue;
 	}
-	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
+	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
+//	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
 	return true;
 }
