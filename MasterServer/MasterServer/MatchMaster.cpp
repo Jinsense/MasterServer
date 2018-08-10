@@ -956,10 +956,11 @@ bool CMatchMaster::FullRoomRemove(CLIENT * pClient, UINT64 ClientKey)
 					iter = (*i).second->RoomPlayer.erase(iter);
 					_pMaster->_ClientPool->Free(pClient);
 					pRoom = (*i).second;
-					_pMaster->_FullRoomMap.erase(i);
+	
 //					AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 					_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
 //					ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+					_pMaster->_FullRoomMap.erase(i);
 					break;
 				}
 				else

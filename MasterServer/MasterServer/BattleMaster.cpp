@@ -906,6 +906,7 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 {
 	int RoomNo = NULL;
 	UINT ReqSequence = NULL;
+	BattleRoom * pRoom = nullptr;
 	*pPacket >> RoomNo >> ReqSequence;
 	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 //	AcquireSRWLockExclusive(&_pMaster->_FullRoom_lock);
@@ -913,7 +914,7 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 	{
 		if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
 		{
-			BattleRoom * pRoom = (*i).second;
+			pRoom = (*i).second;
 			for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
 			{
 				AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
@@ -933,6 +934,34 @@ void CBattleMaster::ReqClosedRoom(LANSESSION * pSession, CPacket * pPacket)
 		else
 			i++;
 		continue;
+	}
+	if (nullptr == pRoom)
+	{
+		for (auto i = _pMaster->_WaitRoomMap.begin(); i != _pMaster->_WaitRoomMap.end();)
+		{
+			if ((*i).first == RoomNo && (*i).second->BattleServerNo == pSession->ServerNo)
+			{
+				BattleRoom * pRoom = (*i).second;
+				for (auto iter = pRoom->RoomPlayer.begin(); iter != pRoom->RoomPlayer.end();)
+				{
+					AcquireSRWLockExclusive(&_pMaster->_ClientKey_lock);
+					_pMaster->_ClientKeyMap.erase((*iter).ClientKey);
+					ReleaseSRWLockExclusive(&_pMaster->_ClientKey_lock);
+
+					_pMaster->_ClientPool->Free((*iter).pClient);
+
+					AcquireSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
+					iter = pRoom->RoomPlayer.erase(iter);
+					ReleaseSRWLockExclusive(&_pMaster->_RoomPlayer_lock);
+				}
+				i = _pMaster->_WaitRoomMap.erase(i);
+				delete pRoom;
+				break;
+			}
+			else
+				i++;
+			continue;
+		}
 	}
 	ReleaseSRWLockExclusive(&_pMaster->_Room_lock);
 //	ReleaseSRWLockExclusive(&_pMaster->_FullRoom_lock);
@@ -1006,11 +1035,11 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 						ClientKey = (*iter).ClientKey;
 						_pMaster->_ClientPool->Free((*iter).pClient);
 						iter = (*i).second->RoomPlayer.erase(iter);
-						i = _pMaster->_FullRoomMap.erase(i);
 
 //						AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
 						_pMaster->_WaitRoomMap.insert(make_pair(pRoom->RoomNo, pRoom));
 //						ReleaseSRWLockExclusive(&_pMaster->_WaitRoom_lock);
+						i = _pMaster->_FullRoomMap.erase(i);
 						break;
 					}
 					else
