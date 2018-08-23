@@ -76,18 +76,38 @@ void CMasterServer::SetMonitorMode(bool type)
 
 BattleServer* CMasterServer::FindBattleServerNo(int ServerNo)
 {
+	bool Find = false;
+	std::map<long, BattleServer*>::iterator iter;
 	AcquireSRWLockExclusive(&_BattleServer_lock);
-	BattleServer* pBattleServer = _BattleServerMap.find(ServerNo)->second;
+	iter = _BattleServerMap.find(ServerNo);
+	if (iter == _BattleServerMap.end())
+		Find = false;
+	else
+		Find = true;
 	ReleaseSRWLockExclusive(&_BattleServer_lock);
-	return pBattleServer;
+
+	if (false == Find)
+		return nullptr;
+	else
+		return (*iter).second;
 }
 
 CLIENT* CMasterServer::FindClientKey(UINT64 ClientKey)
 {
+	bool Find = false;
+	std::map<UINT64, CLIENT*>::iterator iter;
 	AcquireSRWLockExclusive(&_ClientKey_lock);
-	CLIENT* pClient = _ClientKeyMap.find(ClientKey)->second;
+	iter = _ClientKeyMap.find(ClientKey);
+	if (iter == _ClientKeyMap.end())
+		Find = false;
+	else
+		Find = true;
 	ReleaseSRWLockExclusive(&_ClientKey_lock);
-	return pClient;
+
+	if (false == Find)
+		return nullptr;
+	else
+		return (*iter).second;
 }
 
 void CMasterServer::MonitorPrintThead_Update()
@@ -122,7 +142,9 @@ void CMasterServer::MonitorPrintThead_Update()
 			wprintf(L"	Master CPU (Process)		:	%d\n", _MasterServer_CPU_Process);
 			wprintf(L"	Master CPU ( ALL )		:	%d\n", _MasterServer_CPU_All);
 			wprintf(L"	Master Memory UserCommit	:	%d\n", _MasterServer_MemoryCommit);
+			wprintf(L"	Master PacketPool AllocCount	:	%d\n", CPacket::m_pMemoryPool->GetAllocCount());
 			wprintf(L"	Master PacketPool UseCount	:	%d\n", CPacket::m_pMemoryPool->_UseCount);
+			wprintf(L"	Master ClientPool AllocCount	:	%d\n", _ClientPool->GetAllocCount());
 			wprintf(L"	Master ClientPool UseCount	:	%d\n", _ClientPool->GetUseCount());
 			wprintf(L"	ClientKeyMap Size		:	%d\n\n", _ClientKeyMap.size());
 			wprintf(L"	MatchMaking Server Connect	:	%d\n", _pMatchMaster->_iConnectClient);

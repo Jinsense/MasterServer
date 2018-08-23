@@ -737,10 +737,12 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 	UINT64 AccountNo;
 	*pPacket >> ClientKey >> AccountNo;
 
+	
 	//	이미 있는 키값인지 인지 검사
 	pClient = _pMaster->FindClientKey(ClientKey);
 	if (nullptr == pClient)
 	{
+		
 		pClient = _pMaster->_ClientPool->Alloc();
 		pClient->ClientKey = ClientKey;
 		pClient->AccountNo = AccountNo;
