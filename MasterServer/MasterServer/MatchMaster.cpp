@@ -754,7 +754,7 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 
 	//	방 Map에서 사람이 남는 방을 하나 선택하여 보내준다.
 	BattleRoom * pRoom = nullptr;
-	RoomPlayerInfo PlayerInfo;
+//	RoomPlayerInfo PlayerInfo;
 	std::map<int, BattleRoom*>::iterator iter;
 	AcquireSRWLockExclusive(&_pMaster->_Room_lock);
 //	AcquireSRWLockExclusive(&_pMaster->_WaitRoom_lock);
@@ -762,10 +762,10 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 	{
 		iter = _pMaster->_WaitRoomMap.begin();
 		pRoom = (*iter).second;
-		PlayerInfo.AccountNo = pClient->AccountNo;
-		PlayerInfo.ClientKey = pClient->ClientKey;
-		PlayerInfo.pClient = pClient;
-		pRoom->RoomPlayer.push_back(PlayerInfo);
+//		PlayerInfo.AccountNo = pClient->AccountNo;
+//		PlayerInfo.ClientKey = pClient->ClientKey;
+//		PlayerInfo.pClient = pClient;
+//		pRoom->RoomPlayer.push_back(PlayerInfo);
 		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"EnterRoom"), LOG_SYSTEM, const_cast<WCHAR*>(L"[RoomNo : %d] AccountNo : %d "), (*iter).second->RoomNo, pClient->AccountNo);
 		if ((*iter).second->MaxUser == InterlockedIncrement(&(*iter).second->CurUser))
 		{
