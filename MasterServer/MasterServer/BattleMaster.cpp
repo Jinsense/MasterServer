@@ -998,6 +998,8 @@ void CBattleMaster::ReqLeftUser(LANSESSION * pSession, CPacket * pPacket)
 			{
 				if (iter->AccountNo == AccountNo)
 				{
+					_pMaster->_pLog->Log(const_cast<WCHAR*>(L"LevaeRoom"), LOG_SYSTEM, const_cast<WCHAR*>(L"[RoomNo : %d] AccountNo : %d"), RoomNo, (*iter).AccountNo);
+
 					FindUser = true;
 					InterlockedDecrement(&(*i).second->CurUser);
 					ClientKey = (*iter).ClientKey;
