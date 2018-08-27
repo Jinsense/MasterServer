@@ -766,7 +766,6 @@ void CMatchMaster::ReqGameRoom(LANSESSION * pSession, CPacket * pPacket)
 //		PlayerInfo.ClientKey = pClient->ClientKey;
 //		PlayerInfo.pClient = pClient;
 //		pRoom->RoomPlayer.push_back(PlayerInfo);
-		_pMaster->_pLog->Log(const_cast<WCHAR*>(L"EnterRoom"), LOG_SYSTEM, const_cast<WCHAR*>(L"[RoomNo : %d] AccountNo : %d "), (*iter).second->RoomNo, pClient->AccountNo);
 		if ((*iter).second->MaxUser == InterlockedIncrement(&(*iter).second->CurUser))
 		{
 			iter = _pMaster->_WaitRoomMap.erase(iter);
